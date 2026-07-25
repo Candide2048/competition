@@ -120,9 +120,10 @@ rigid_wing:
     ref_New_Aden: "4× 40m 翼帆 (1200 m²/帆), 预计 9.8% (VLCC, DSIC)"
     ref_Oceanbird: "Wing560 单翼 7-10%, 年省 600t 柴油"
   cost:
-    unit_cost_usd: 2000000        # 单帆估计 ~$2M (含安装)，船东可覆盖
-    unit_cost_range_usd: [1500000, 3000000]  # 文献/公开信息区间
-    cost_source: "基于 Oceanbird / bound4blue 公开信息粗估，未经报价核实"
+    unit_cost_usd: 4000000        # 单帆 ~$4M (含结构加强+安装)
+    unit_cost_range_usd: [3000000, 5500000]  # EMSA 2023: €560K-1.05M 资产 + 结构加强/安装
+    structural_reinforcement_usd: 1200000  # 甲板/龙骨加强 + 液压基座 (大型翼帆专有)
+    cost_source: "EMSA 2023 Study (€560K-1.05M/帆资产) + IMO GreenVoyage2050 ($500-700K/帆安装) + 结构加强估算 $1.2M (DNV Class 加强需求)"
 
 # ═══════════════════════════════════════════════════════════
 # 3. 吸力帆 (Suction Wing / Aspiration Sail)
@@ -189,3 +190,39 @@ comparison_summary:
     power_needed: "吸力风扇 ~15 kW/台"
     maturity: "商业化初期, 5+ 安装"
     best_for: "中小型货船/油轮 (可收放设计)"
+
+# ═══════════════════════════════════════════════════════════
+# 船型帆型兼容性矩阵
+# ═══════════════════════════════════════════════════════════
+# 值说明: 1.0 = 完全兼容(有实船证据), 0.0 = 不兼容(物理不可行)
+# 中间值表示有条件兼容(需額外投资或降级配置)
+# 数据来源:
+#   - 集装箱船+翼帆: 截至2026年无实船安装，集装箱堆叠区域阻碇大型翼帆安装
+#     (Advanced Wing Systems 2025.12 开发集装箱化方案，未达商用)
+#   - PCTC+翼帆: 高上层建筑+空气吃水限制，37.5m翼帆产生过大横倾力矩
+#     及桥梁净空问题 (DNV Air Draft Guidelines)
+#   - Flettner全船型兼容: 24m高度较低，可安装于各类船舶
+#     (Viking Grace客渡轮, Maersk Pelican油轮, Copenhagen散货船 等)
+#   - 吸力帆全船型兼容: 22m高可收放，各船型适用
+#     (Ville de Bordeaux ro-ro, MV Ankie多用途船 等)
+ship_sail_compatibility:
+  kvlcc2:
+    flettner: 1.0
+    rigid_wing: 1.0
+    suction_wing: 1.0
+  kamsarmax:
+    flettner: 1.0
+    rigid_wing: 1.0      # Berge Olympus 即为散货船安装翼帆
+    suction_wing: 1.0
+  mr_tanker:
+    flettner: 1.0
+    rigid_wing: 0.8      # 可安装但甲板空间受限，需降级配置或额外加强
+    suction_wing: 1.0
+  container:
+    flettner: 1.0
+    rigid_wing: 0.0      # 无实船安装，集装箱堆叠区物理上阻碇翼帆布置
+    suction_wing: 1.0
+  pctc:
+    flettner: 1.0
+    rigid_wing: 0.3      # 高上层建筑+空气吃水限制，37.5m翼帆产生过大横倾力矩
+    suction_wing: 1.0

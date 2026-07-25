@@ -212,12 +212,19 @@ class TestPostprocessBridge:
             fuel_price_usd_per_kg=self._FUEL_PRICE,
             co2_price_eur_per_t=self._CO2_PRICE, ship_meta=_SHIP_META)
         ref = self._reference_cell(row)
-        assert set(cell.keys()) == set(ref.keys())
+        # postprocess 新增兼容性字段，在 ref 基础上补充
+        compat_keys = {"compatibility", "compatible",
+                       "saving_rate_pct_adjusted", "payback_years_adjusted"}
+        assert set(cell.keys()) == set(ref.keys()) | compat_keys
         for k in ref:
             if isinstance(ref[k], (int, float)) and ref[k] is not None:
                 assert cell[k] == pytest.approx(ref[k], abs=1e-6), f"字段 {k} 不一致"
             else:
                 assert cell[k] == ref[k], f"字段 {k} 不一致"
+        # 兼容性字段基本校验
+        assert cell["compatibility"] >= 0.0
+        assert cell["compatibility"] <= 1.0
+        assert isinstance(cell["compatible"], bool)
 
     def test_postprocess_positive_and_valid(self):
         row = _make_record(14.0)

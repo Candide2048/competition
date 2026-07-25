@@ -15,6 +15,7 @@ import os
 import sys
 import json
 
+import yaml
 import pandas as pd
 
 CODE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -53,6 +54,27 @@ SIM_KEYS = PHYSICS_FIELDS
 
 # 物理层固定 SFOC（与 precompute_grid.GRID_SFOC_KG_PER_KWH 对齐）
 GRID_SFOC_KG_PER_KWH = 0.180
+
+# 船型帆型兼容性矩阵 (sail_types.yaml 加载)
+_SAIL_CONFIG_PATH = os.path.join(CODE_DIR, "config", "sail_types.yaml")
+
+
+def _load_compatibility_matrix() -> dict:
+    """加载船型帆型兼容性矩阵 (1.0=完全兼容, 0.0=不兼容)"""
+    with open(_SAIL_CONFIG_PATH, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+    return cfg.get("ship_sail_compatibility", {})
+
+
+def get_compatibility(ship: str, sail: str) -> float:
+    """查询特定船型×帆型的兼容性因子 (0.0-1.0)
+
+    Returns:
+        float: 1.0=完全兼容, 0.0=不兼容, 中间值=有条件兼容
+    """
+    compat = _load_compatibility_matrix()
+    ship_compat = compat.get(ship, {})
+    return float(ship_compat.get(sail, 1.0))
 
 
 # ═══════════════════════════════════════════════════════════
@@ -175,7 +197,7 @@ def postprocess(row: dict, ship: str, sail: str,
     cii_capacity = ship_gt if (cap_type == "GT" and ship_gt is not None) else None
     ship_obj = _ShipStub(ship_dwt, imo, cii_capacity)
 
-    return evaluate_cell(
+    result = evaluate_cell(
         sim, ship_obj, total_nm, unit_cost_usd, n_sails, trips_per_year,
         emission_factor=emission_factor,
         cii_ship_type=ship_obj.ship_type_imo,
@@ -183,6 +205,26 @@ def postprocess(row: dict, ship: str, sail: str,
         co2_price=co2_price_eur_per_t,
         cii_capacity=ship_obj.cii_capacity,
     )
+
+    # 添加兼容性因子（前端显示用）
+    compat = get_compatibility(ship, sail)
+    result["compatibility"] = compat
+    result["compatible"] = compat > 0.0
+    # 兼容性 < 1.0 时，按比例缩减效益并延长回收期
+    if 0.0 < compat < 1.0:
+        result["saving_rate_pct_adjusted"] = result.get("saving_rate_pct", 0) * compat
+        if result.get("payback_years") and result["payback_years"] != float('inf'):
+            result["payback_years_adjusted"] = result["payback_years"] / compat
+        else:
+            result["payback_years_adjusted"] = float('inf')
+    elif compat == 0.0:
+        result["saving_rate_pct_adjusted"] = 0.0
+        result["payback_years_adjusted"] = float('inf')
+    else:
+        result["saving_rate_pct_adjusted"] = result.get("saving_rate_pct", 0)
+        result["payback_years_adjusted"] = result.get("payback_years", float('inf'))
+
+    return result
 
 
 class _ShipStub:

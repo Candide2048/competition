@@ -16,7 +16,7 @@
 
 固定量（写入 metadata，便于溯源）:
     代表船标准几何（无实船覆盖）、标准航速集、SFOC=0.180 kg/kWh、
-    帆型等面积归一化台数 SAIL_INSTALL、Flettner 默认 24×4 规格。
+    帆型实船典型台数 SAIL_INSTALL、Flettner 默认 24×4 规格。
     实船几何覆盖 / 非标准航速 / 非标准 SFOC → 前端 live 缓存重算，不进网格。
 
 用法:
