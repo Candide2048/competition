@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useI18n } from '../i18n'
 
 interface PricePoint {
@@ -76,6 +76,7 @@ export default function MarketPrices({ onApply }: {
   const [data, setData] = useState<MarketPricesData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const autoApplied = useRef(false)
   const { t } = useI18n()
 
   const fetchPrices = useCallback(async () => {
@@ -87,14 +88,19 @@ export default function MarketPrices({ onApply }: {
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const json = await r.json() as MarketPricesData
       setData(json)
+      // 首次加载自动同步实时价格到 slider（仅一次）
+      if (!autoApplied.current) {
+        onApply(json.values.fuel_price_usd_per_kg, json.values.co2_price_eur_per_t)
+        autoApplied.current = true
+      }
     } catch (e) {
       setError((e as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onApply])
 
-  useEffect(() => { fetchPrices() }, [fetchPrices])
+  useEffect(() => { fetchPrices() }, [])
 
   const handleApply = () => {
     if (!data) return
