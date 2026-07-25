@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { getOptions, type Options, type ScenarioRequest } from './api'
 import { useScenario } from './hooks/useScenario'
 import { useReveal } from './hooks/useReveal'
+import { useI18n } from './i18n'
 import Background from './components/Background'
 import Sidebar from './components/Sidebar'
 import Hero from './components/Hero'
@@ -13,6 +14,8 @@ import BenchmarkBar from './components/BenchmarkBar'
 import RouteMap from './components/RouteMap'
 import MatrixHeatmap from './components/MatrixHeatmap'
 import ReportPanel from './components/ReportPanel'
+import ScrollProgress from './components/ScrollProgress'
+import WelcomeToast from './components/WelcomeToast'
 
 /** 分区包裹：进入视口滚动淡入。 */
 function Reveal({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -28,6 +31,7 @@ export default function App() {
   const [options, setOptions] = useState<Options | null>(null)
   const [req, setReq] = useState<ScenarioRequest | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
+  const { t } = useI18n()
 
   useEffect(() => {
     getOptions()
@@ -65,14 +69,14 @@ export default function App() {
   if (bootError) {
     return (
       <div className="boot boot-err">
-        <h1>无法连接后端 API</h1>
+        <h1>{t.err_api}</h1>
         <p>{bootError}</p>
-        <p className="hint">请先启动 <code>uvicorn app.api:app --port 8600</code>。</p>
+        <p className="hint">{t.err_hint} <code>uvicorn app.api:app --port 8600</code>。</p>
       </div>
     )
   }
   if (!options || !req) {
-    return <div className="boot">加载参数选项…</div>
+    return <div className="boot">{t.loading}</div>
   }
 
   const ship = options.ships.find((s) => s.value === req.ship)!
@@ -81,17 +85,19 @@ export default function App() {
   return (
     <div className="app">
       <Background />
+      <ScrollProgress />
+      <WelcomeToast />
       <Sidebar options={options} req={req} patch={patch} />
 
       <main className="main">
         {loading && (
           <div className="live-bar">
-            <span className="spinner" /> 实时物理重算中（首次约数秒，缓存后瞬时）…
+            <span className="spinner" /> {t.loading_live}
           </div>
         )}
 
         {error && !data && (
-          <div className="section boot-err-inline">场景计算失败：{error}</div>
+          <div className="section boot-err-inline">{t.err_scenario}{error}</div>
         )}
 
         {data && (
@@ -101,13 +107,12 @@ export default function App() {
             {/* 核心答案区：回收期 + 年净节省 + 节油率 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">核心效益</span>
-                <h2 className="section-title">投资回收与节能指标</h2>
+                <span className="eyebrow">{t.sec_kpi}</span>
+                <h2 className="section-title">{t.sec_kpi_title}</h2>
               </div>
               {!data.speed_exact && (
                 <div className="note">
-                  航速 {req.speed.toFixed(1)} kn 不在标准集，已取最近邻{' '}
-                  <b className="num">{data.speed_used.toFixed(0)} kn</b> 网格值。
+                  {t.speed_note(req.speed.toFixed(1), data.speed_used.toFixed(0))}
                 </div>
               )}
               <KpiGrid res={data} />
@@ -118,8 +123,8 @@ export default function App() {
             {/* 累计现金流曲线 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">投资回报</span>
-                <h2 className="section-title">累计净现金流（含贴现）</h2>
+                <span className="eyebrow">{t.sec_cashflow}</span>
+                <h2 className="section-title">{t.sec_cashflow_title}</h2>
               </div>
               <CashflowChart
                 initialCost={data.cell.initial_cost_usd}
@@ -132,8 +137,8 @@ export default function App() {
             {/* CII 评级跃迁 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">IMO合规</span>
-                <h2 className="section-title">CII 评级跃迁 · 避免合规罚款</h2>
+                <span className="eyebrow">{t.sec_cii}</span>
+                <h2 className="section-title">{t.sec_cii_title}</h2>
               </div>
               <div className="cii-row">
                 <CiiBadge
@@ -152,8 +157,8 @@ export default function App() {
             {/* 三帆型 PK */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">帆型PK</span>
-                <h2 className="section-title">三帆型同条件横向对比</h2>
+                <span className="eyebrow">{t.sec_sail}</span>
+                <h2 className="section-title">{t.sec_sail_title}</h2>
               </div>
               <SailCompare
                 ship={req.ship}
@@ -171,8 +176,8 @@ export default function App() {
             {/* 实船报道对照 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">实船校验</span>
-                <h2 className="section-title">节油率 vs 公开报道区间</h2>
+                <span className="eyebrow">{t.sec_bench}</span>
+                <h2 className="section-title">{t.sec_bench_title}</h2>
               </div>
               <BenchmarkBar
                 value={data.cell.saving_rate_pct}
@@ -187,8 +192,8 @@ export default function App() {
             {/* 效益矩阵热力图 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">全景矩阵</span>
-                <h2 className="section-title">帆型 × 航速 效益热力图</h2>
+                <span className="eyebrow">{t.sec_matrix}</span>
+                <h2 className="section-title">{t.sec_matrix_title}</h2>
               </div>
               <MatrixHeatmap
                 ship={req.ship}
@@ -205,7 +210,7 @@ export default function App() {
             {/* 航线地图 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">航线</span>
+                <span className="eyebrow">{t.sec_route}</span>
                 <h2 className="section-title">{data.route_name}</h2>
               </div>
               <RouteMap
@@ -223,8 +228,8 @@ export default function App() {
             {/* 技术报告 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">报告</span>
-                <h2 className="section-title">自动生成技术分析</h2>
+                <span className="eyebrow">{t.sec_report}</span>
+                <h2 className="section-title">{t.sec_report_title}</h2>
               </div>
               <ReportPanel md={data.report_md} />
             </Reveal>

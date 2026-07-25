@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { reduceMotion } from '../lib/format'
 import { estimateCiiPenaltyAvoided } from '../lib/cashflow'
+import { useI18n } from '../i18n'
 
 const RATING_COLORS: Record<string, string> = {
   A: 'var(--cii-a)',
@@ -38,6 +39,7 @@ export default function CiiBadge({
   tripsPerYear: number
 }) {
   const [flip, setFlip] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (reduceMotion()) {
@@ -73,10 +75,10 @@ export default function CiiBadge({
         <Pill rating={withSail} active={flip} />
       </div>
       <div>
-        <span className="cii-imp">碳强度改善 {improvementPct.toFixed(1)}%</span>
+        <span className="cii-imp">{t.cii_improve(improvementPct.toFixed(1))}</span>
         {penaltyAvoided > 0 && (
           <span className="cii-penalty">
-            避免约 ${Math.round(penaltyAvoided / 1000).toLocaleString('en-US')}K/年 合规附加成本
+            {t.cii_penalty(Math.round(penaltyAvoided / 1000).toLocaleString('en-US'))}
           </span>
         )}
       </div>

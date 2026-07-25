@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getMatrix, type MatrixResult } from '../api'
 import { fmtUsd, fmtPayback } from '../lib/format'
+import { useI18n } from '../i18n'
 
 type Metric = 'saving_rate_pct' | 'annual_savings_usd' | 'payback_years'
 
@@ -42,6 +43,14 @@ export default function MatrixHeatmap({
   const [data, setData] = useState<MatrixResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [metric, setMetric] = useState<Metric>('saving_rate_pct')
+  const { t } = useI18n()
+  const L = (s: string) => t.labels[s] || s
+
+  const METRIC_LABELS: Record<Metric, string> = {
+    saving_rate_pct: t.matrix_saving,
+    annual_savings_usd: t.matrix_annual,
+    payback_years: t.matrix_payback,
+  }
 
   useEffect(() => {
     let alive = true
@@ -51,7 +60,7 @@ export default function MatrixHeatmap({
         if (alive) setData(r)
       })
       .catch((e: unknown) => {
-        if (alive) setError((e as Error).message || '矩阵加载失败')
+        if (alive) setError((e as Error).message || 'unknown')
       })
     return () => {
       alive = false
@@ -78,8 +87,8 @@ export default function MatrixHeatmap({
     return fmtPayback(v)
   }
 
-  if (error) return <div className="matrix card matrix-msg">矩阵加载失败：{error}</div>
-  if (!data || !grid) return <div className="matrix card matrix-msg">加载效益矩阵…</div>
+  if (error) return <div className="matrix card matrix-msg">{t.matrix_err(error)}</div>
+  if (!data || !grid) return <div className="matrix card matrix-msg">{t.matrix_loading}</div>
 
   return (
     <div className="matrix card">
@@ -91,24 +100,24 @@ export default function MatrixHeatmap({
               className={`matrix-tab ${metric === m ? 'on' : ''}`}
               onClick={() => setMetric(m)}
             >
-              {METRIC_META[m].label}
+              {METRIC_LABELS[m]}
             </button>
           ))}
         </div>
-        <span className="matrix-sub">{data.route_name} · {season}</span>
+        <span className="matrix-sub">{L(data.route_name)} · {L(season)}</span>
       </div>
       <div
         className="matrix-grid"
         style={{ gridTemplateColumns: `160px repeat(${data.speeds.length}, 1fr)` }}
       >
-        <div className="matrix-corner">帆型 \ 航速</div>
+        <div className="matrix-corner">{t.matrix_corner}</div>
         {data.speeds.map((sp) => (
           <div key={sp} className="matrix-colhead num">{sp} kn</div>
         ))}
         {data.sail_labels.map((label, ri) => (
           <FragmentRow
             key={label}
-            label={label}
+            label={L(label)}
             cells={grid[ri]}
             norm={norm}
             fmtCell={fmtCell}

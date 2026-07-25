@@ -167,7 +167,7 @@
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(10, 14, 26, 0.8);
+  background: var(--input-bg);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 13.5px;
@@ -187,7 +187,7 @@ input[type='range'] {
   width: 100%;
   height: 4px;
   border-radius: 999px;
-  background: rgba(100, 200, 255, 0.12);
+  background: var(--range-track);
   outline: none;
 }
 input[type='range']::-webkit-slider-thumb {
@@ -229,7 +229,7 @@ input[type='range']::-moz-range-thumb {
   flex-direction: column;
   gap: 12px;
   padding: 12px;
-  background: rgba(10, 14, 26, 0.6);
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
@@ -275,7 +275,7 @@ input[type='range']::-moz-range-thumb {
 .seg {
   display: flex;
   gap: 6px;
-  background: rgba(10, 14, 26, 0.6);
+  background: var(--input-bg);
   padding: 4px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -303,6 +303,7 @@ input[type='range']::-moz-range-thumb {
 /* ══════════════ Hero ══════════════ */
 .hero {
   padding: clamp(40px, 6vw, 72px) 0 28px;
+  position: relative;
 }
 .hero-title {
   font-family: var(--font-display);
@@ -414,6 +415,9 @@ input[type='range']::-moz-range-thumb {
 /* ══════════════ CII 徽章 ══════════════ */
 .cii-row {
   margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 .cii-badge {
   display: inline-flex;
@@ -824,6 +828,7 @@ input[type='range']::-moz-range-thumb {
   flex-direction: column;
   gap: 10px;
   transition: border-color 0.3s, box-shadow 0.3s;
+  overflow: hidden;
 }
 .sail-card:hover {
   border-color: var(--border-hover);

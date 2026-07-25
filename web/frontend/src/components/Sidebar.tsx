@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { Options, ScenarioRequest, ShipMeta } from '../api'
 import { fmtInt } from '../lib/format'
+import { useI18n } from '../i18n'
+import { useTheme } from '../hooks/useTheme'
 
 type Override = { DWT: number; L: number; B: number; draft: number; C_B: number }
 
@@ -63,6 +65,9 @@ export default function Sidebar({
   patch: (p: Partial<ScenarioRequest>) => void
 }) {
   const [advOpen, setAdvOpen] = useState(false)
+  const { locale, toggle: toggleLang, t } = useI18n()
+  const { theme, toggle: toggleTheme } = useTheme()
+  const L = (s: string) => t.labels[s] || s
   const useOverride = req.overrides !== null
   const shipMeta = options.ships.find((s) => s.value === req.ship)!.meta
   const currentSail = options.sails.find((s) => s.value === req.sail)!
@@ -103,18 +108,29 @@ export default function Sidebar({
           <span className="brand-mark">⛵</span>
           <div>
             <div className="brand-title">WASP</div>
-            <div className="brand-sub">风帆辅助推进 · 效益决策</div>
+            <div className="brand-sub">{t.brand_sub}</div>
           </div>
+        </div>
+
+        {/* 语言 / 主题切换 */}
+        <div className="toolbar-row">
+          <div className="pill-toggle">
+            <button className={locale === 'zh' ? 'on' : ''} onClick={() => locale !== 'zh' && toggleLang()}>中</button>
+            <button className={locale === 'en' ? 'on' : ''} onClick={() => locale !== 'en' && toggleLang()}>EN</button>
+          </div>
+          <button className="theme-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
         </div>
 
         {/* ① 船型 */}
         <div className="group">
           <label className="field">
-            <span className="field-label">船型</span>
+            <span className="field-label">{t.sb_ship}</span>
             <select value={req.ship} onChange={(e) => onShip(e.target.value)}>
               {options.ships.map((s) => (
                 <option key={s.value} value={s.value}>
-                  {s.label}
+                  {L(s.label)}
                 </option>
               ))}
             </select>
@@ -124,7 +140,7 @@ export default function Sidebar({
         {/* ② 实船参数（高级，可选）→ 触发 live 重算 */}
         <div className="group">
           <button className="adv-toggle" onClick={() => setAdvOpen((o) => !o)}>
-            <span>{advOpen ? '▾' : '▸'} 实船参数（高级，可选）</span>
+            <span>{advOpen ? '▾' : '▸'} {t.sb_adv}</span>
           </button>
           {advOpen && (
             <div className="adv-body">
@@ -134,7 +150,7 @@ export default function Sidebar({
                   checked={useOverride}
                   onChange={(e) => onToggleOverride(e.target.checked)}
                 />
-                启用实船几何覆盖 <em>（触发 live 物理重算）</em>
+                {t.sb_override} <em>{t.sb_override_note}</em>
               </label>
               <div className={`ov-grid ${useOverride ? '' : 'disabled'}`}>
                 <label className="field-sm">
@@ -168,7 +184,7 @@ export default function Sidebar({
                   />
                 </label>
                 <label className="field-sm">
-                  吃水 (m)
+                  {t.sb_draft}
                   <input
                     type="number"
                     disabled={!useOverride}
@@ -189,14 +205,14 @@ export default function Sidebar({
                 </label>
               </div>
               <Slider
-                label="SFOC (g/kWh)"
+                label={t.sb_sfoc}
                 value={req.sfoc}
                 min={r.sfoc.min}
                 max={r.sfoc.max ?? 220}
                 step={r.sfoc.step}
                 onChange={(v) => patch({ sfoc: v })}
               />
-              <p className="adv-note">SFOC ≠ 180 或非网格航速将触发 live 实时物理重算。</p>
+              <p className="adv-note">{t.sb_sfoc_note}</p>
             </div>
           )}
         </div>
@@ -204,7 +220,7 @@ export default function Sidebar({
         {/* 航速 */}
         <div className="group">
           <Slider
-            label="航速 (kn)"
+            label={t.sb_speed}
             value={req.speed}
             min={r.speed.min}
             max={r.speed.max ?? 18}
@@ -212,12 +228,12 @@ export default function Sidebar({
             decimals={1}
             onChange={(v) => patch({ speed: v })}
           />
-          <p className="hint num">标准网格 {options.speeds_kn.join(' / ')} kn 秒级取数，其余触发 live。</p>
+          <p className="hint num">{t.sb_speed_hint(options.speeds_kn.join(' / '))}</p>
         </div>
 
         {/* ③ 帆型 */}
         <div className="group">
-          <span className="field-label">风帆技术类型</span>
+          <span className="field-label">{t.sb_sail_type}</span>
           <div className="seg">
             {options.sails.map((s) => (
               <button
@@ -225,13 +241,13 @@ export default function Sidebar({
                 className={`seg-btn ${req.sail === s.value ? 'on' : ''}`}
                 onClick={() => onSail(s.value)}
               >
-                {s.label}
+                {L(s.label)}
               </button>
             ))}
           </div>
           {req.sail === 'flettner' && (
             <label className="field">
-              <span className="field-label">Flettner 规格 (H×D)</span>
+              <span className="field-label">{t.sb_flettner_spec}</span>
               <select value={req.flettner_spec} onChange={(e) => onSpec(e.target.value)}>
                 {options.flettner_specs.map((sp) => (
                   <option key={sp} value={sp}>
@@ -241,27 +257,27 @@ export default function Sidebar({
               </select>
             </label>
           )}
-          <p className="hint">安装台数 {currentSail.n_sails} 台（等面积归一化，公平对比）。</p>
+          <p className="hint">{t.sb_sail_hint(currentSail.n_sails)}</p>
         </div>
 
         {/* ④ 航线 / 季节 */}
         <div className="group two">
           <label className="field">
-            <span className="field-label">航线</span>
+            <span className="field-label">{t.sb_route}</span>
             <select value={req.route} onChange={(e) => patch({ route: e.target.value })}>
               {options.routes.map((r2) => (
                 <option key={r2.value} value={r2.value}>
-                  {r2.label}
+                  {L(r2.label)}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
-            <span className="field-label">季节</span>
+            <span className="field-label">{t.sb_season}</span>
             <select value={req.season} onChange={(e) => patch({ season: e.target.value })}>
               {options.seasons.map((s) => (
                 <option key={s.value} value={s.value}>
-                  {s.label}
+                  {L(s.label)}
                 </option>
               ))}
             </select>
@@ -270,9 +286,9 @@ export default function Sidebar({
 
         {/* ⑤ 经济性 */}
         <div className="group">
-          <span className="group-title">经济性参数</span>
+          <span className="group-title">{t.sb_econ}</span>
           <label className="field">
-            <span className="field-label">燃料类型</span>
+            <span className="field-label">{t.sb_fuel_type}</span>
             <select value={req.fuel_type} onChange={(e) => patch({ fuel_type: e.target.value })}>
               {options.fuel_types.map((f) => (
                 <option key={f} value={f}>
@@ -282,7 +298,7 @@ export default function Sidebar({
             </select>
           </label>
           <Slider
-            label="燃油价 (USD/kg)"
+            label={t.sb_fuel_price}
             value={req.fuel_price}
             min={r.fuel_price.min}
             max={r.fuel_price.max ?? 1}
@@ -291,7 +307,7 @@ export default function Sidebar({
             onChange={(v) => patch({ fuel_price: v })}
           />
           <Slider
-            label="碳价 (EUR/tCO₂)"
+            label={t.sb_co2_price}
             value={req.co2_price}
             min={r.co2_price.min}
             max={r.co2_price.max ?? 150}
@@ -300,7 +316,7 @@ export default function Sidebar({
           />
           <label className="field">
             <span className="field-label">
-              单台成本 (USD)
+              {t.sb_unit_cost}
               <b className="num field-val">${fmtInt(req.unit_cost ?? 0)}</b>
             </span>
             <input
@@ -312,7 +328,7 @@ export default function Sidebar({
             />
           </label>
           <Slider
-            label="海上作业比例"
+            label={t.sb_sea_ratio}
             value={req.sea_ratio}
             min={r.sea_ratio.min}
             max={r.sea_ratio.max ?? 0.95}

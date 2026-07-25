@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { reduceMotion } from '../lib/format'
+import { useTheme } from '../hooks/useTheme'
+import { useI18n } from '../i18n'
 
 type LatLon = [number, number]
 
-// CartoDB Dark Matter 瓦片 URL
-const TILE_URL = 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+// CartoDB Dark/Light 瓦片 URL
+const TILE_DARK = 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+const TILE_LIGHT = 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png'
 const TILE_SIZE = 256
 
 // 经纬度 → 瓦片坐标
@@ -47,6 +50,9 @@ export default function RouteMap({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const rafRef = useRef<number>(0)
+  const { theme } = useTheme()
+  const { t } = useI18n()
+  const L = (s: string) => t.labels[s] || s
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -63,6 +69,8 @@ export default function RouteMap({
     canvas.style.width = `${W}px`
     canvas.style.height = `${H}px`
     ctx.scale(dpr, dpr)
+
+    const TILE_URL = theme === 'light' ? TILE_LIGHT : TILE_DARK
 
     const lats = waypoints.map((w) => w[0])
     const lons = waypoints.map((w) => w[1])
@@ -104,15 +112,15 @@ export default function RouteMap({
 
     const drawAll = () => {
       ctx.clearRect(0, 0, W, H)
-      // 深色底色（瓦片加载前/缺失处可见）
-      ctx.fillStyle = '#0a0e1a'
+      // 底色跟随主题
+      ctx.fillStyle = theme === 'light' ? '#f5f7fa' : '#0a0e1a'
       ctx.fillRect(0, 0, W, H)
       // 绘制瓦片
       for (const t of tileImages) {
         ctx.drawImage(t.img, t.dx, t.dy, TILE_SIZE, TILE_SIZE)
       }
       // 覆盖一层轻微透明度，确保航线突出
-      ctx.fillStyle = 'rgba(10,14,26,0.3)'
+      ctx.fillStyle = theme === 'light' ? 'rgba(245,247,250,0.2)' : 'rgba(10,14,26,0.3)'
       ctx.fillRect(0, 0, W, H)
     }
 
@@ -260,7 +268,7 @@ export default function RouteMap({
       clearTimeout(fallbackTimer)
       cancelAnimationFrame(rafRef.current)
     }
-  }, [waypoints])
+  }, [waypoints, theme])
 
   return (
     <div className="routemap card">
@@ -268,10 +276,10 @@ export default function RouteMap({
         <canvas ref={canvasRef} />
       </div>
       <div className="routemap-foot">
-        <b>{routeName}</b>
+        <b>{L(routeName)}</b>
         <span className="num">{Math.round(distanceNm).toLocaleString('en-US')} nm</span>
-        <span className="num">单程 ≈ {durationH.toFixed(0)} h</span>
-        <span className="num">平均风速 {windMs.toFixed(1)} m/s</span>
+        <span className="num">{t.labels['单程'] || '单程'} ≈ {durationH.toFixed(0)} h</span>
+        <span className="num">{t.labels['平均风速'] || '平均风速'} {windMs.toFixed(1)} m/s</span>
       </div>
     </div>
   )

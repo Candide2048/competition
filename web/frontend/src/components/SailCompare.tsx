@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getMatrix, type MatrixResult } from '../api'
 import { fmtInt } from '../lib/format'
+import { useI18n } from '../i18n'
 
 /**
  * 三帆型横向 PK —— 同条件下比较回收期/节油率/年净节省。
@@ -24,6 +25,8 @@ export default function SailCompare({
   currentSpeed: number
 }) {
   const [data, setData] = useState<MatrixResult | null>(null)
+  const { t } = useI18n()
+  const L = (s: string) => t.labels[s] || s
 
   useEffect(() => {
     let alive = true
@@ -57,23 +60,24 @@ export default function SailCompare({
     ? validPaybacks.reduce((a, b) => (a.pb! < b.pb! ? a : b)).idx
     : -1
 
+
   return (
     <div className="sail-compare">
       {sails.map((s, i) => (
         <div key={s.label} className={`sail-card ${i === bestIdx ? 'best' : ''}`}>
-          <div className="sail-card-head">{s.label}</div>
+          <div className="sail-card-head">{L(s.label)}</div>
           <div className="sail-card-metric">
-            <span className="sail-card-metric-label">回收期</span>
+            <span className="sail-card-metric-label">{t.sail_payback}</span>
             <span className="sail-card-metric-value num">
-              {s.payback === null ? '—' : `${s.payback.toFixed(1)} 年`}
+              {s.payback === null ? '—' : `${s.payback.toFixed(1)} yr`}
             </span>
           </div>
           <div className="sail-card-metric">
-            <span className="sail-card-metric-label">节油率</span>
+            <span className="sail-card-metric-label">{t.sail_saving}</span>
             <span className="sail-card-metric-value num">{s.saving.toFixed(2)}%</span>
           </div>
           <div className="sail-card-metric">
-            <span className="sail-card-metric-label">年净节省</span>
+            <span className="sail-card-metric-label">{t.sail_annual}</span>
             <span className="sail-card-metric-value num">${fmtInt(s.annual)}</span>
           </div>
         </div>

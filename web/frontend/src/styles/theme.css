@@ -41,6 +41,9 @@
   --font-body: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
   --font-num: 'JetBrains Mono', 'Fira Code', monospace;
 
+  --input-bg: rgba(10, 14, 26, 0.8);
+  --range-track: rgba(100, 200, 255, 0.12);
+
   --sidebar-w: 320px;
 }
 
@@ -208,6 +211,122 @@ body {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ── 亮色主题变量覆盖 ─────────────────────────────── */
+[data-theme="light"] {
+  --bg: #f5f7fa;
+  --bg-deep: #eef1f5;
+  --panel: rgba(255, 255, 255, 0.7);
+  --card: rgba(255, 255, 255, 0.9);
+  --border: rgba(60, 80, 120, 0.12);
+  --border-hover: rgba(60, 80, 120, 0.25);
+  --sidebar: rgba(255, 255, 255, 0.95);
+  --text: #1a1f35;
+  --muted: #5a6a80;
+
+  --input-bg: rgba(240, 243, 248, 0.9);
+  --range-track: rgba(60, 80, 120, 0.12);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.1);
+
+  --glow-pos: 0 0 12px rgba(0, 180, 100, 0.15);
+  --glow-info: 0 0 12px rgba(60, 130, 200, 0.15);
+  --glow-accent: 0 0 12px rgba(102, 126, 234, 0.15);
+  --glow-warn: 0 0 12px rgba(200, 140, 0, 0.15);
+  --glow-neg: 0 0 12px rgba(220, 60, 80, 0.15);
+}
+[data-theme="light"] .bg-aurora { opacity: 0.3; }
+[data-theme="light"] .bg-grid { opacity: 0.4; }
+
+/* ── 滚动进度条 ─────────────────────────────────────── */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--pos));
+  transform-origin: left;
+  transform: scaleX(0);
+  z-index: 9999;
+  pointer-events: none;
+  transition: transform 0.1s linear;
+}
+
+/* ── 欢迎引导 Toast ──────────────────────────────────── */
+.welcome-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  font-size: 14px;
+  color: var(--text);
+  animation: toast-in 0.4s ease-out;
+  cursor: pointer;
+}
+.welcome-icon {
+  font-size: 18px;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── 语言 / 主题切换按钮 ─────────────────────────────── */
+.toolbar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pill-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(100, 200, 255, 0.06);
+  border: 1px solid var(--border);
+}
+.pill-toggle button {
+  padding: 5px 10px;
+  border: 0;
+  background: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.pill-toggle button.on {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--glow-accent);
+}
+.theme-btn {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  background: rgba(100, 200, 255, 0.06);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  line-height: 1;
+}
+.theme-btn:hover {
+  border-color: var(--accent);
 }
 
 /* 滚动条（深色） */

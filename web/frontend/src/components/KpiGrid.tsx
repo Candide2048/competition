@@ -4,6 +4,7 @@ import SpotlightCard from './SpotlightCard'
 import CountNumber from './CountNumber'
 import { fmtInt, reduceMotion } from '../lib/format'
 import { computeCashflow, findBreakevenYear } from '../lib/cashflow'
+import { useI18n } from '../i18n'
 import type { ScenarioResult } from '../api'
 
 interface Kpi {
@@ -16,6 +17,7 @@ interface Kpi {
 export default function KpiGrid({ res }: { res: ScenarioResult }) {
   const gridRef = useRef<HTMLDivElement | null>(null)
   const { cell, trips_per_year } = res
+  const { t } = useI18n()
 
   useEffect(() => {
     const el = gridRef.current
@@ -53,37 +55,37 @@ export default function KpiGrid({ res }: { res: ScenarioResult }) {
   const profitTone: Kpi['tone'] = profit20y >= 0 ? 'pos' : 'warn'
   const profitFoot =
     profit20y >= 0
-      ? `第 ${breakevenYear?.toFixed(1) ?? '—'} 年开始盈利`
+      ? t.kpi_profit_earning(breakevenYear?.toFixed(1) ?? '—')
       : breakevenYear
-        ? `预计第 ${breakevenYear.toFixed(1)} 年回本`
-        : '20年内未回本，建议调整参数'
+        ? t.kpi_profit_expect(breakevenYear.toFixed(1))
+        : t.kpi_profit_none
 
   const kpis: Kpi[] = [
     {
-      label: '投资回收期',
+      label: t.kpi_payback,
       tone: paybackTone,
       node:
         cell.payback_years === null ? (
-          <span className="num">不可回收</span>
+          <span className="num">{t.kpi_payback_unrecoverable}</span>
         ) : (
-          <CountNumber value={cell.payback_years} decimals={1} suffix=" 年" />
+          <CountNumber value={cell.payback_years} decimals={1} suffix=" yr" />
         ),
-      foot: `初始投资 $${fmtInt(cell.initial_cost_usd)}`,
+      foot: t.kpi_payback_foot(fmtInt(cell.initial_cost_usd)),
     },
     {
-      label: '年净节省',
+      label: t.kpi_annual,
       tone: 'pos',
       node: <CountNumber value={cell.annual_savings_usd} prefix="$" />,
-      foot: `${trips_per_year.toFixed(1)} 航次/年 · 含碳价收益`,
+      foot: t.kpi_annual_foot(trips_per_year.toFixed(1)),
     },
     {
-      label: '节油率',
+      label: t.kpi_saving,
       tone: 'accent',
       node: <CountNumber value={cell.saving_rate_pct} decimals={2} suffix="%" />,
-      foot: `单航次节油 ${cell.fuel_saved_t.toFixed(1)} t`,
+      foot: t.kpi_saving_foot(cell.fuel_saved_t.toFixed(1)),
     },
     {
-      label: '20年累计收益',
+      label: t.kpi_profit,
       tone: profitTone,
       node: (
         <CountNumber
@@ -95,20 +97,20 @@ export default function KpiGrid({ res }: { res: ScenarioResult }) {
       foot: profitFoot,
     },
     {
-      label: '年 CO₂ 减排',
+      label: t.kpi_co2,
       tone: 'accent',
       node: <CountNumber value={cell.co2_reduced_t * trips_per_year} decimals={0} suffix=" t" />,
-      foot: `单航次 ${cell.co2_reduced_t.toFixed(1)} t`,
+      foot: t.kpi_co2_foot(cell.co2_reduced_t.toFixed(1)),
     },
     {
-      label: 'CII 跃迁',
+      label: t.kpi_cii,
       tone: 'pos',
       node: (
         <span className="num">
           {cell.cii_rating_baseline} → {cell.cii_rating_with_sail}
         </span>
       ),
-      foot: `碳强度改善 ${cell.cii_improvement_pct.toFixed(1)}%`,
+      foot: t.kpi_cii_foot(cell.cii_improvement_pct.toFixed(1)),
     },
   ]
 

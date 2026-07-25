@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { computeCashflow, findBreakevenYear } from '../lib/cashflow'
 import { fmtInt } from '../lib/format'
+import { useI18n } from '../i18n'
 
 /**
  * 累计现金流 SVG 曲线 —— 标注回本时刻，深色科技风配色。
@@ -12,6 +13,7 @@ export default function CashflowChart({
   initialCost: number
   annualSavings: number
 }) {
+  const { t } = useI18n()
   const points = useMemo(
     () => computeCashflow(initialCost, annualSavings),
     [initialCost, annualSavings],
@@ -135,7 +137,7 @@ export default function CashflowChart({
               fill="#00ff88"
               fontSize="11"
             >
-              回本 {breakevenYear!.toFixed(1)}年
+              ✓ {breakevenYear!.toFixed(1)}yr
             </text>
           </>
         )}
@@ -160,7 +162,7 @@ export default function CashflowChart({
             textAnchor="middle"
             className="cashflow-label"
           >
-            {yr}年
+            {yr}
           </text>
         ))}
 
@@ -182,14 +184,14 @@ export default function CashflowChart({
       <div className="cashflow-breakeven">
         {breakevenYear !== null ? (
           <>
-            <span>✓ 第 {breakevenYear.toFixed(1)} 年收回全部投资，此后持续盈利</span>
+            <span>{t.cf_breakeven(breakevenYear.toFixed(1))}</span>
             <span style={{ color: 'var(--muted)', fontWeight: 400 }}>
-              · 含 8% 贴现 + 2% 年维护 · 展示至第 {maxYear} 年
+              {t.cf_note(maxYear)}
             </span>
           </>
         ) : (
           <span style={{ color: 'var(--warn)' }}>
-            ⚠ 当前参数下 40 年内未回本，建议提高海上作业比例或选择风力更优航线
+            {t.cf_warn}
           </span>
         )}
       </div>
