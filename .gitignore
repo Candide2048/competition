@@ -24,13 +24,9 @@ _diag*.py
 ERA5*.md
 *交接报表*.md
 
-# 前端源码（只提交 dist）
+# 前端开发产物
 web/frontend/node_modules/
-web/frontend/src/
-web/frontend/package*.json
-web/frontend/tsconfig.json
-web/frontend/vite.config.ts
-web/frontend/index.html
+web/frontend/package-lock.json
 web/run_dev.ps1
 
 # 开发/构建产物

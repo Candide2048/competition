@@ -1,0 +1,188 @@
+/* ══════════════════════════════════════════════════════════
+   WASP 前端设计 tokens —— 深色科技风（Tesla/SpaceX 控制台）
+   ══════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0a0e1a;
+  --bg-deep: #060912;
+  --panel: rgba(15, 20, 40, 0.6);
+  --card: rgba(15, 20, 40, 0.8);
+  --border: rgba(100, 200, 255, 0.1);
+  --border-hover: rgba(100, 200, 255, 0.25);
+  --sidebar: rgba(8, 12, 24, 0.95);
+  --accent: #667eea;
+  --accent2: #88ccff;
+  --pos: #00ff88;
+  --warn: #ffaa00;
+  --neg: #ff4466;
+  --text: #e8f0ff;
+  --muted: #7088aa;
+
+  --cii-a: #00ff88;
+  --cii-b: #4bff6b;
+  --cii-c: #ffaa00;
+  --cii-d: #ff7733;
+  --cii-e: #ff4466;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  --glow-pos: 0 0 20px rgba(0, 255, 136, 0.3);
+  --glow-info: 0 0 20px rgba(136, 204, 255, 0.3);
+  --glow-accent: 0 0 20px rgba(102, 126, 234, 0.3);
+  --glow-warn: 0 0 20px rgba(255, 170, 0, 0.3);
+  --glow-neg: 0 0 20px rgba(255, 68, 102, 0.3);
+
+  --font-display: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  --font-body: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  --font-num: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --sidebar-w: 320px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ── 布局 ───────────────────────────────────────────── */
+.app {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 0 clamp(20px, 5vw, 72px) 120px;
+}
+
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  margin: 0 0 14px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 24px;
+  color: var(--text);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  border: 0;
+  margin: 72px 0;
+}
+
+/* ── 卡片 ───────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.chip.live {
+  color: var(--pos);
+  background: rgba(0, 255, 136, 0.08);
+  border-color: rgba(0, 255, 136, 0.25);
+}
+
+/* ── 滚动淡入 ─────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── 全局无障碍：尊重 reduced-motion ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 滚动条（深色） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 200, 255, 0.15);
+  border-radius: 999px;
+  border: 3px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 200, 255, 0.3);
+}
