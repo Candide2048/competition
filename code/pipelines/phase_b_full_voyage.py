@@ -37,6 +37,7 @@ from core.route_definition import (
     ship_velocity_components, KN_TO_MS, KM_TO_NM,
 )
 from core.ship_params import load_ship_params, to_holtrop_input
+from core.constants import MIN_EFFECTIVE_WIND_SPEED
 from models.aerodynamics.flettner import FlettnerSail, FlettnerConfig
 from models.atmosphere import rho_air, relative_wind, wind_shear_log
 from models.resistance.holtrop_mennen import compute_resistance
@@ -324,7 +325,7 @@ def run_phase_b_full_voyage(
             beta = 2 * np.pi - beta
 
         # Flettner 最优控制
-        if V_app < 0.5:
+        if V_app < MIN_EFFECTIVE_WIND_SPEED:
             T_sail_list.append(0.0)
             P_rotor_list.append(0.0)
             saving_rate_list.append(0.0)

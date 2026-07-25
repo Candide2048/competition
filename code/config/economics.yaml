@@ -10,6 +10,7 @@
 # ═══════════════════════════════════════════════════════════
 fuel_price: 0.6          # USD/kg (VLSFO 2025: 485-650 $/t，取上沿偏保守)
 co2_price: 74.0          # EUR/tCO2 (EU ETS 2025 年均)
+eur_to_usd: 1.08         # EUR→USD 汇率（ECB 2025H1 均值，可动态更新）
 work_rate: 1.0           # 风帆工作率（逐小时物理仿真已隐含折减，矩阵用 1.0）
 discount_rate: 0.08      # 贴现率
 maintenance_rate: 0.02   # 年维护成本率 = 2% 初始成本

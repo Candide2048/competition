@@ -1,7 +1,7 @@
 {
   "metadata": {
     "pipeline": "Physics Grid (ship × speed × route × season × sail)",
-    "generated_at": "2026-07-25T17:23:39.038322",
+    "generated_at": "2026-07-25T18:03:57.806815",
     "era5_year": 2025,
     "sfoc_kg_per_kwh": 0.18,
     "flettner_spec": "24x4",
@@ -278,7 +278,7 @@
       "autumn": "2025-10-15T00:00"
     },
     "n_records": 900,
-    "elapsed_s": 467.7,
+    "elapsed_s": 441.6,
     "note": "物理层字段来自 simulate_voyage，SFOC 固定；经济性/CII 由前端 evaluate_cell 后处理。代表船标准几何，实船覆盖走 live 重算。"
   },
   "records": [

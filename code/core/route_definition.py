@@ -99,10 +99,10 @@ def ship_velocity_components(V_ship_ms: float, heading_rad: float) -> tuple[floa
 
 def interpolate_route(start: Waypoint, end: Waypoint,
                       n_steps: int) -> list[Waypoint]:
-    """沿大圆航线线性插值航路点
+    """沿大圆航线插值航路点（球面插值）
 
-    简化版: 纬度/经度线性插值（适用于短航线，<1000nm）。
-    长航线应使用球面插值，但 Phase A MVP 用线性即可。
+    使用球面线性插值 (Slerp 近似)：对经纬度做大圆弧插值，
+    避免线性 lat/lon 插值在长航线 (>1000nm) 上的纬度偏差。
 
     Args:
         start: 起点航路点
@@ -114,11 +114,34 @@ def interpolate_route(start: Waypoint, end: Waypoint,
     """
     if n_steps < 2:
         raise ValueError("n_steps 必须 ≥ 2")
+
+    lat1, lon1 = np.radians(start.lat), np.radians(start.lon)
+    lat2, lon2 = np.radians(end.lat), np.radians(end.lon)
+
+    # 大圆角距 d
+    d_lon = lon2 - lon1
+    cos_d = (np.sin(lat1) * np.sin(lat2) +
+             np.cos(lat1) * np.cos(lat2) * np.cos(d_lon))
+    d = np.arccos(np.clip(cos_d, -1.0, 1.0))  # clip 防止浮点误差
+
     waypoints = []
     for i in range(n_steps):
-        t = i / (n_steps - 1)
-        lat = start.lat + t * (end.lat - start.lat)
-        lon = start.lon + t * (end.lon - start.lon)
+        f = i / (n_steps - 1)
+
+        if d < 1e-10:
+            # 起终点几乎重合，线性回退
+            lat = start.lat + f * (end.lat - start.lat)
+            lon = start.lon + f * (end.lon - start.lon)
+        else:
+            # 大圆弧插值（Vincenty-like intermediate point）
+            a = np.sin((1 - f) * d) / np.sin(d)
+            b = np.sin(f * d) / np.sin(d)
+            x = a * np.cos(lat1) * np.cos(lon1) + b * np.cos(lat2) * np.cos(lon2)
+            y = a * np.cos(lat1) * np.sin(lon1) + b * np.cos(lat2) * np.sin(lon2)
+            z = a * np.sin(lat1) + b * np.sin(lat2)
+            lat = np.degrees(np.arctan2(z, np.sqrt(x**2 + y**2)))
+            lon = np.degrees(np.arctan2(y, x))
+
         # 时间插值（若起终点都有时间）
         wp_time = None
         if start.time is not None and end.time is not None:

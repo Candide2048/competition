@@ -31,6 +31,7 @@ import yaml
 # 默认经济参数（⑤ Guzelbulut 2024 + 船舶风帆技术数据搜集表.xlsx 2025 市场数据）
 DEFAULT_FUEL_PRICE = 0.6      # USD/kg (VLSFO 2025: 485-650 $/t, 取上沿偏保守)
 DEFAULT_CO2_PRICE = 74.0      # EUR/tCO2 (EU ETS 2025 年均; 年末 87.37, 2026Q2 64-68)
+DEFAULT_EUR_TO_USD = 1.08     # EUR→USD 汇率（ECB 2025H1 均值，可从 config 动态加载）
 DEFAULT_WORK_RATE = 1.0           # 风帆工作率（与 economics.yaml 一致；逐小时物理仿真已隐含折减）
 DEFAULT_MAINTENANCE_RATE = 0.02  # 年维护成本 = 2% 初始成本 (PH-04)
 DEFAULT_DISCOUNT_RATE = 0.08  # 贴现率 (PH-05)
@@ -71,10 +72,11 @@ def annual_savings(fuel_saved_t_per_year: float,
                    co2_reduced_t_per_year: float,
                    fuel_price: float = DEFAULT_FUEL_PRICE,
                    co2_price: float = DEFAULT_CO2_PRICE,
-                   work_rate: float = DEFAULT_WORK_RATE) -> dict:
+                   work_rate: float = DEFAULT_WORK_RATE,
+                   eur_to_usd: float = DEFAULT_EUR_TO_USD) -> dict:
     """年度节省金额
 
-    savings = (fuel_saved × fuel_price + co2_reduced × co2_price) × work_rate
+    savings = (fuel_saved × fuel_price + co2_reduced × co2_price × eur_to_usd) × work_rate
 
     Args:
         fuel_saved_t_per_year:   年节油量 (t)
@@ -82,15 +84,15 @@ def annual_savings(fuel_saved_t_per_year: float,
         fuel_price:              油价 (USD/kg) → 注意 t→kg 转换
         co2_price:               碳价 (EUR/tCO2)
         work_rate:               风帆工作率
+        eur_to_usd:              EUR→USD 汇率
 
     Returns:
-        dict: fuel_savings_usd, co2_savings_eur, total_savings_usd (近似)
+        dict: fuel_savings_usd, co2_savings_eur, total_savings_usd
               work_rate, fuel_saved_t, co2_reduced_t
     """
     fuel_savings_usd = fuel_saved_t_per_year * 1000.0 * fuel_price  # t→kg
     co2_savings_eur = co2_reduced_t_per_year * co2_price
-    # 近似 1 EUR ≈ 1.08 USD（占位，实际应动态汇率）
-    co2_savings_usd_approx = co2_savings_eur * 1.08
+    co2_savings_usd_approx = co2_savings_eur * eur_to_usd
     total_usd = (fuel_savings_usd + co2_savings_usd_approx) * work_rate
     return {
         "fuel_savings_usd": fuel_savings_usd * work_rate,
@@ -109,23 +111,26 @@ def npv(annual_savings_usd: float, initial_cost_usd: float,
         maintenance_rate: float = DEFAULT_MAINTENANCE_RATE) -> dict:
     """计算多个投资期的 NPV
 
-    NPV(n) = Σ_{t=1}^{n} (annual_savings × (1-maintenance)^t) / (1+r)^t - initial_cost
+    NPV(n) = Σ_{t=1}^{n} (annual_savings - maintenance_cost) / (1+r)^t - initial_cost
+
+    维护成本 = initial_cost × maintenance_rate（年度固定比例，行业标准做法）
 
     Args:
         annual_savings_usd: 年度节省 (USD)
         initial_cost_usd:   初始投资 (USD)
         years:              投资期列表
         discount_rate:      贴现率
-        maintenance_rate:   年维护成本率
+        maintenance_rate:   年维护成本率 (占初始投资的比例)
 
     Returns:
         dict: {5: npv_5y, 10: npv_10y, 15: npv_15y, 20: npv_20y}
     """
+    annual_maintenance = initial_cost_usd * maintenance_rate
     result = {}
     for n in years:
         npv_value = 0.0
         for t in range(1, n + 1):
-            net_cash = annual_savings_usd * (1.0 - maintenance_rate) ** t
+            net_cash = annual_savings_usd - annual_maintenance
             npv_value += net_cash / (1.0 + discount_rate) ** t
         npv_value -= initial_cost_usd
         result[n] = float(npv_value)

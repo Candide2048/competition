@@ -45,6 +45,7 @@ from core.ship_params import (
     to_holtrop_input,
 )
 from core.owner_inputs import OwnerInputs
+from core.constants import MIN_EFFECTIVE_WIND_SPEED
 from models.aerodynamics.flettner import FlettnerSail, FlettnerConfig
 from models.aerodynamics.rigid_wing import RigidWingSail
 from models.aerodynamics.suction_sail import SuctionSail
@@ -173,7 +174,7 @@ def simulate_voyage(sail, n_sails, waypoints, weather, R_total, V_ship_ms,
         if beta > np.pi:
             beta = 2 * np.pi - beta
 
-        if V_app < 0.5:
+        if V_app < MIN_EFFECTIVE_WIND_SPEED:
             bal = solve_balance(R_total, V_ship_ms, 0.0, 0.0, SFOC=sfoc_kg_per_kwh)
             fuel_baseline_kg += bal.fuel_baseline_kg_per_h
             T_list.append(0.0)

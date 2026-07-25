@@ -18,3 +18,11 @@ EMISSION_FACTORS: dict[str, float] = {
 }
 
 DEFAULT_EMISSION_FACTOR: float = EMISSION_FACTORS["HFO"]
+
+
+# ═══════════════════════════════════════════════════════════
+# 风帆物理阈值
+# ═══════════════════════════════════════════════════════════
+
+# 最小有效风速 (m/s)：低于此值时风帆不产生有效推力，跳过计算
+MIN_EFFECTIVE_WIND_SPEED: float = 0.5  # m/s (基于 Norsepower 实船启动风速阈值)
