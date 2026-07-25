@@ -584,7 +584,7 @@ input[type='range']::-moz-range-thumb {
 .matrix-tabs {
   display: flex;
   gap: 6px;
-  background: rgba(10, 14, 26, 0.6);
+  background: var(--input-bg);
   padding: 4px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);

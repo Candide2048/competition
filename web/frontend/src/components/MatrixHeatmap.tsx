@@ -153,6 +153,7 @@ function FragmentRow({
   theme: 'dark' | 'light'
 }) {
   const heatColor = theme === 'light' ? heatColorLight : heatColorDark
+  const textThreshold = theme === 'light' ? 0.6 : 0.4
   return (
     <>
       <div className="matrix-rowhead">{label}</div>
@@ -162,7 +163,7 @@ function FragmentRow({
           <div
             key={ci}
             className="matrix-cell num"
-            style={{ background: heatColor(t), color: t > 0.4 ? '#fff' : 'var(--muted)' }}
+            style={{ background: heatColor(t), color: t > textThreshold ? '#fff' : 'var(--text)' }}
           >
             {fmtCell(v)}
           </div>
