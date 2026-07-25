@@ -130,6 +130,7 @@ class ScenarioRequest(BaseModel):
     sea_ratio: float = 0.742
     sfoc: float = 180.0               # g/kWh
     overrides: Optional[dict] = None  # 实船几何覆盖 {DWT,L,B,draft,C_B}
+    locale: str = "zh"                # 报告语言 zh|en
 
 
 @app.get("/api/health")
@@ -261,7 +262,8 @@ def scenario(req: ScenarioRequest):
         co2_price=req.co2_price, unit_cost_usd=unit_cost_used,
         n_sails=SAIL_INSTALL[req.sail],
         flettner_spec=req.flettner_spec if req.sail == "flettner" else None,
-        is_live=is_live, ship_overrides=overrides)
+        is_live=is_live, ship_overrides=overrides,
+        locale=req.locale)
 
     lo, hi, refs = SAIL_BENCH_RANGE.get(req.sail, (0.0, 10.0, ""))
 

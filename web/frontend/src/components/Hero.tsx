@@ -13,17 +13,18 @@ export default function Hero({
   ship: ShipOption
   sail: SailOption
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const L = (s: string) => t.labels[s] || s
   const { cell, route_name, is_live, speed_used, n_sails } = res
 
   const verdict = t.hero_verdict(
-    ship.label,
+    L(ship.label),
     n_sails,
-    sail.label,
+    L(sail.label),
     cell.saving_rate_pct.toFixed(2),
     cell.cii_rating_baseline,
     cell.cii_rating_with_sail,
-    fmtPayback(cell.payback_years),
+    fmtPayback(cell.payback_years, locale),
   )
 
   return (
@@ -36,7 +37,7 @@ export default function Hero({
         text={verdict}
       />
       <div className="hero-chips">
-        <span className="chip">{route_name}</span>
+        <span className="chip">{L(route_name)}</span>
         <span className="chip">{speed_used.toFixed(0)} kn</span>
         <span className={`chip ${is_live ? 'live' : ''}`}>
           {is_live ? t.chip_live : t.chip_cache}

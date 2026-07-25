@@ -119,6 +119,7 @@ export interface ScenarioRequest {
   sea_ratio: number
   sfoc: number
   overrides: Record<string, number> | null
+  locale: string
 }
 
 export interface MatrixResult {

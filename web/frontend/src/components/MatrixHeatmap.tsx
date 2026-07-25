@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getMatrix, type MatrixResult } from '../api'
 import { fmtUsd, fmtPayback } from '../lib/format'
 import { useI18n } from '../i18n'
+import { useTheme } from '../hooks/useTheme'
 
 type Metric = 'saving_rate_pct' | 'annual_savings_usd' | 'payback_years'
 
@@ -12,12 +13,20 @@ const METRIC_META: Record<Metric, { label: string; better: 'high' | 'low' }> = {
 }
 
 /** 深色主题热力色：暗底 → 紫蓝/翠绿发光，t∈[0,1] 越大越「好」。 */
-function heatColor(t: number): string {
+function heatColorDark(t: number): string {
   const clamped = Math.max(0, Math.min(1, t))
-  // 暗灰蓝 → 紫蓝 → 翠绿
   const r = Math.round(20 + (0 - 20) * clamped)
   const g = Math.round(25 + (200 - 25) * clamped)
   const b = Math.round(45 + (100 - 45) * clamped)
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+/** 亮色主题热力色：浅灰 → 绿色，t∈[0,1] 越大越「好」。 */
+function heatColorLight(t: number): string {
+  const clamped = Math.max(0, Math.min(1, t))
+  const r = Math.round(230 + (30 - 230) * clamped)
+  const g = Math.round(235 + (185 - 235) * clamped)
+  const b = Math.round(240 + (80 - 240) * clamped)
   return `rgb(${r}, ${g}, ${b})`
 }
 
@@ -43,7 +52,8 @@ export default function MatrixHeatmap({
   const [data, setData] = useState<MatrixResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [metric, setMetric] = useState<Metric>('saving_rate_pct')
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const { theme } = useTheme()
   const L = (s: string) => t.labels[s] || s
 
   const METRIC_LABELS: Record<Metric, string> = {
@@ -84,7 +94,7 @@ export default function MatrixHeatmap({
     if (v === null) return '—'
     if (metric === 'saving_rate_pct') return `${v.toFixed(1)}%`
     if (metric === 'annual_savings_usd') return fmtUsd(v)
-    return fmtPayback(v)
+    return fmtPayback(v, locale)
   }
 
   if (error) return <div className="matrix card matrix-msg">{t.matrix_err(error)}</div>
@@ -121,6 +131,7 @@ export default function MatrixHeatmap({
             cells={grid[ri]}
             norm={norm}
             fmtCell={fmtCell}
+            theme={theme}
           />
         ))}
       </div>
@@ -133,12 +144,15 @@ function FragmentRow({
   cells,
   norm,
   fmtCell,
+  theme,
 }: {
   label: string
   cells: (number | null)[]
   norm: (v: number | null) => number
   fmtCell: (v: number | null) => string
+  theme: 'dark' | 'light'
 }) {
+  const heatColor = theme === 'light' ? heatColorLight : heatColorDark
   return (
     <>
       <div className="matrix-rowhead">{label}</div>

@@ -7,8 +7,10 @@ export const fmtUsd = (v: number | null | undefined) =>
 export const fmtUsdSigned = (v: number) =>
   `${v < 0 ? '-' : ''}$${Math.round(Math.abs(v)).toLocaleString('en-US')}`
 
-export const fmtPayback = (v: number | null | undefined) =>
-  v === null || v === undefined ? '不可回收' : `${v.toFixed(1)} 年`
+export const fmtPayback = (v: number | null | undefined, locale: 'zh' | 'en' = 'zh') =>
+  v === null || v === undefined
+    ? (locale === 'en' ? 'N/A' : '不可回收')
+    : `${v.toFixed(1)} ${locale === 'en' ? 'yr' : '年'}`
 
 export const reduceMotion = () =>
   typeof window !== 'undefined' &&

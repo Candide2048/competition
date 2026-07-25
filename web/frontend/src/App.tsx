@@ -31,7 +31,7 @@ export default function App() {
   const [options, setOptions] = useState<Options | null>(null)
   const [req, setReq] = useState<ScenarioRequest | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   useEffect(() => {
     getOptions()
@@ -56,6 +56,7 @@ export default function App() {
           sea_ratio: o.ranges.sea_ratio.default ?? 0.742,
           sfoc: o.ranges.sfoc.default ?? 180,
           overrides: null,
+          locale: 'zh',
         })
       })
       .catch((e: unknown) => setBootError((e as Error).message || '选项加载失败'))
@@ -63,6 +64,11 @@ export default function App() {
 
   const patch = (p: Partial<ScenarioRequest>) =>
     setReq((r) => (r ? { ...r, ...p } : r))
+
+  // sync locale to API request when language changes
+  useEffect(() => {
+    setReq((r) => (r ? { ...r, locale } : r))
+  }, [locale])
 
   const { data, loading, error } = useScenario(req)
 
