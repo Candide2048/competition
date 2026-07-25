@@ -225,6 +225,13 @@ _chips = [
 ]
 st.markdown(theme.verdict_hero(_verdict, _chips), unsafe_allow_html=True)
 
+# 帆型-船型兼容性警告
+if cell.get("compatible") is False:
+    st.error("⚠️ 该帆型与当前船型不兼容，计算结果仅供参考。")
+elif cell.get("compatibility", 1.0) < 1.0:
+    _pct = cell["compatibility"] * 100
+    st.warning(f"ℹ️ 该帆型与当前船型有条件兼容（{_pct:.0f}%），效益已按比例折减。")
+
 tab1, tab2, tab3, tab4 = st.tabs(
     ["📊 效益指标", "🗺️ 航线地图", "🔥 效益矩阵", "📄 分析报告"])
 

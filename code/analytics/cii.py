@@ -23,18 +23,7 @@
     船舶风帆技术数据搜集表.xlsx (排放因子/年度折减系数)
 """
 from dataclasses import dataclass, field
-
-
-# ── 排放因子 (tCO2/tFuel, IMO G1 导则) ──
-EMISSION_FACTORS = {
-    "HFO": 3.114,    # 重油 (Heavy Fuel Oil)
-    "VLSFO": 3.114,  # 低硫燃油 (近似 HFO)
-    "MGO": 3.206,    # 船用柴油 (Marine Gas Oil)
-    "MDO": 3.206,    # 船用柴油 (Marine Diesel Oil)
-    "LNG": 2.750,    # 液化天然气
-    "METHANOL": 1.375,  # 甲醇
-}
-DEFAULT_EMISSION_FACTOR = EMISSION_FACTORS["HFO"]  # KVLCC2 烧 HFO
+from core.constants import EMISSION_FACTORS, DEFAULT_EMISSION_FACTOR  # 单一来源
 
 # ── CII 评级边界 (attained/required 比值, MEPC.354(78) G4) ──
 RATING_BOUNDARIES = {

@@ -38,7 +38,7 @@ from core.route_definition import (
 )
 from core.ship_params import load_ship_params, to_holtrop_input
 from models.aerodynamics.flettner import FlettnerSail, FlettnerConfig
-from models.atmosphere import rho_air, relative_wind
+from models.atmosphere import rho_air, relative_wind, wind_shear_log
 from models.resistance.holtrop_mennen import compute_resistance
 from models.thrust_balance import solve_balance
 from analytics.cii import (
@@ -300,6 +300,10 @@ def run_phase_b_full_voyage(
     P_rotor_list = []
     saving_rate_list = []
 
+    # 风剪切修正系数（仅计算一次，因帆高固定）
+    h_eff = sail_H / 2.0 + 10.0  # 帆安装基座约 10m + 帆高中点
+    shear_factor = wind_shear_log(1.0, 10.0, h_eff) / 1.0  # 比值
+
     for i in range(len(waypoints)):
         u, v = float(u10_arr[i]), float(v10_arr[i])
         msl_val, sst_val = float(msl_arr[i]), float(sst_arr[i])
@@ -309,8 +313,9 @@ def run_phase_b_full_voyage(
         heading = getattr(waypoints[i], "_heading", 0.0)
         V_east, V_north = ship_velocity_components(V_ship_ms, heading)
 
-        # 相对风
-        u_app, v_app, V_app = relative_wind(u, v, V_north, V_east)
+        # 相对风（含风剪切修正）
+        u_h, v_h = u * shear_factor, v * shear_factor
+        u_app, v_app, V_app = relative_wind(u_h, v_h, V_north, V_east)
 
         # 相对风向角 beta
         wind_dir_geo = np.arctan2(u_app, v_app) % (2 * np.pi)

@@ -51,7 +51,7 @@ from core.route_definition import (
     KN_TO_MS,
 )
 from core.ship_params import load_ship_params, to_holtrop_input
-from models.atmosphere import rho_air, relative_wind, wind_speed
+from models.atmosphere import rho_air, relative_wind, wind_speed, wind_shear_log
 from models.aerodynamics.flettner import FlettnerSail, FlettnerConfig
 from models.resistance import compute_resistance
 from models.thrust_balance import solve_balance
@@ -227,8 +227,13 @@ def run_phase_a_mvp(
         # 空气密度
         rho = rho_air(msl, sst)
 
+        # 风剪切修正：将 10m 风速外推到帆有效高度（帆高中点）
+        h_eff = sail_H / 2.0 + 10.0  # 帆安装基座约 10m + 帆高中点
+        shear_factor = wind_shear_log(1.0, 10.0, h_eff) / 1.0  # 比值
+        u_h, v_h = u * shear_factor, v * shear_factor
+
         # 相对风（地理坐标系：east=x, north=y）
-        u_app, v_app, V_app = relative_wind(u, v, V_north, V_east)
+        u_app, v_app, V_app = relative_wind(u_h, v_h, V_north, V_east)
 
         # 相对风向角 beta（相对船首，0=顶风，π/2=横风，π=顺风）
         # 步骤:

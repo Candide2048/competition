@@ -31,7 +31,7 @@ import yaml
 # 默认经济参数（⑤ Guzelbulut 2024 + 船舶风帆技术数据搜集表.xlsx 2025 市场数据）
 DEFAULT_FUEL_PRICE = 0.6      # USD/kg (VLSFO 2025: 485-650 $/t, 取上沿偏保守)
 DEFAULT_CO2_PRICE = 74.0      # EUR/tCO2 (EU ETS 2025 年均; 年末 87.37, 2026Q2 64-68)
-DEFAULT_WORK_RATE = 0.5       # 风帆工作率（年航行中可用比例）
+DEFAULT_WORK_RATE = 1.0           # 风帆工作率（与 economics.yaml 一致；逐小时物理仿真已隐含折减）
 DEFAULT_MAINTENANCE_RATE = 0.02  # 年维护成本 = 2% 初始成本 (PH-04)
 DEFAULT_DISCOUNT_RATE = 0.08  # 贴现率 (PH-05)
 DEFAULT_INVESTMENT_YEARS = [5, 10, 15, 20]
@@ -55,11 +55,11 @@ def initial_cost(A_top: float, A_lateral: float, V_rotor: float,
     c_initial = a·(A_top + A_lateral) + b·V_rotor
 
     Args:
-        A_top:      顶投影面积 (m²)
-        A_lateral:  侧投影面积 (m²)
-        V_rotor:    转子体积流速 (m³/s)，近似 = π·(D/2)²·H
+        A_top:      转子横截面积 π(D/2)² (m²)
+        A_lateral:  侧投影面积 H×D (m²)
+        V_rotor:    转子几何体积 π(D/2)²·H (m³)
         a:          面积成本系数 (USD/m²)
-        b:          体积流速成本系数 (USD/(m³/s))
+        b:          体积成本系数 (USD/m³)
 
     Returns:
         c_initial_usd: 初始投资 (USD)

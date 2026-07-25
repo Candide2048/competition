@@ -16,10 +16,7 @@
 from dataclasses import dataclass
 
 from models.thrust_balance import ThrustBalanceResult, total_fuel_saving
-
-
-# 默认排放因子
-DEFAULT_EMISSION_FACTOR = 3.114  # tCO2/tFuel (HFO, IMO MEPC.245(66)/MEPC.364(79) C_F)
+from core.constants import DEFAULT_EMISSION_FACTOR  # 统一排放因子来源
 
 
 @dataclass

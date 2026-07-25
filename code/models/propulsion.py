@@ -19,8 +19,8 @@ DEFAULT_ETA_SHAFT = 0.98       # 轴传递效率 η_S
 DEFAULT_ETA_PROPULSIVE = 0.97  # 推进效率 η_D (open water × rot. eff.)
 DEFAULT_SFOC = 0.160           # 比油耗 kg/kWh (HFO, 典型 0.155-0.175)
 
-# 排放因子
-DEFAULT_EMISSION_FACTOR = 3.114  # tCO2/tFuel (HFO, IMO MEPC.245(66)/MEPC.364(79) C_F)
+# 排放因子 — 统一从 core.constants 获取，避免多处定义不一致
+from core.constants import DEFAULT_EMISSION_FACTOR  # noqa: E402  # 3.114 tCO2/tFuel (HFO)
 
 
 @dataclass
