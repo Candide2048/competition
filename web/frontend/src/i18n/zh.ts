@@ -68,9 +68,13 @@ export interface I18nKeys {
   loading_live: string
   err_api: string
   err_hint: string
+  err_hint_suffix: string
   err_scenario: string
+  err_boot_fallback: string
   speed_note: (sp: string, used: string) => string
   labels: Record<string, string>
+  // Benchmark
+  bench_range: string
   // Matrix
   matrix_saving: string
   matrix_annual: string
@@ -160,7 +164,9 @@ const zh: I18nKeys = {
   loading_live: '实时物理重算中（首次约数秒，缓存后瞬时）…',
   err_api: '无法连接后端 API',
   err_hint: '请先启动',
+  err_hint_suffix: '。',
   err_scenario: '场景计算失败：',
+  err_boot_fallback: '选项加载失败',
   speed_note: (sp: string, used: string) => `航速 ${sp} kn 不在标准集，已取最近邻 ${used} kn 网格值。`,
   // 选项标签：中文无需映射，仅季节值需要
   labels: {
@@ -169,6 +175,8 @@ const zh: I18nKeys = {
     'summer': '夏季',
     'autumn': '秋季',
   },
+  // Benchmark
+  bench_range: '实船报道区间',
   // Matrix
   matrix_saving: '节油率 %',
   matrix_annual: '年净节省 $',

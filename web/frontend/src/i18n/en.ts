@@ -70,7 +70,9 @@ const en: I18nKeys = {
   loading_live: 'Live physics recalculation in progress…',
   err_api: 'Cannot connect to backend API',
   err_hint: 'Please start',
+  err_hint_suffix: '.',
   err_scenario: 'Scenario calculation failed: ',
+  err_boot_fallback: 'Failed to load options',
   speed_note: (sp, used) => `Speed ${sp} kn not in grid — using nearest ${used} kn.`,
   labels: {
     // Ships
@@ -103,6 +105,7 @@ const en: I18nKeys = {
     'summer': 'Summer',
     'autumn': 'Autumn',
   },
+  bench_range: 'Ship report range',
   matrix_saving: 'Fuel Saving %',
   matrix_annual: 'Annual Savings $',
   matrix_payback: 'Payback yr',

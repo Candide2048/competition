@@ -32,6 +32,7 @@ export default function App() {
   const [req, setReq] = useState<ScenarioRequest | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
   const { t, locale } = useI18n()
+  const L = (s: string) => t.labels[s] || s
 
   useEffect(() => {
     getOptions()
@@ -56,10 +57,10 @@ export default function App() {
           sea_ratio: o.ranges.sea_ratio.default ?? 0.742,
           sfoc: o.ranges.sfoc.default ?? 180,
           overrides: null,
-          locale: 'zh',
+          locale,
         })
       })
-      .catch((e: unknown) => setBootError((e as Error).message || '选项加载失败'))
+      .catch((e: unknown) => setBootError((e as Error).message || t.err_boot_fallback))
   }, [])
 
   const patch = (p: Partial<ScenarioRequest>) =>
@@ -77,7 +78,7 @@ export default function App() {
       <div className="boot boot-err">
         <h1>{t.err_api}</h1>
         <p>{bootError}</p>
-        <p className="hint">{t.err_hint} <code>uvicorn app.api:app --port 8600</code>。</p>
+        <p className="hint">{t.err_hint} <code>uvicorn app.api:app --port 8600</code>{t.err_hint_suffix}</p>
       </div>
     )
   }
@@ -217,7 +218,7 @@ export default function App() {
             <Reveal>
               <div className="section-header">
                 <span className="eyebrow">{t.sec_route}</span>
-                <h2 className="section-title">{data.route_name}</h2>
+                <h2 className="section-title">{L(data.route_name)}</h2>
               </div>
               <RouteMap
                 key={req.route}

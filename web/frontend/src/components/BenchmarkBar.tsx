@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n'
+
 /** 本场景节油率 vs 实船报道区间（bench.lo–bench.hi），横条对照。 */
 export default function BenchmarkBar({
   value,
@@ -10,6 +12,7 @@ export default function BenchmarkBar({
   hi: number
   refs: string
 }) {
+  const { t } = useI18n()
   // 坐标轴上限留 15% 余量，保证标记不贴边
   const axisMax = Math.max(hi, value) * 1.15 || 10
   const pct = (v: number) => `${Math.min(100, (v / axisMax) * 100)}%`
@@ -32,7 +35,7 @@ export default function BenchmarkBar({
       <div className="bench-scale">
         <span className="num">0</span>
         <span>
-          实船报道区间 <b className="num">{lo}–{hi}%</b>
+          {t.bench_range} <b className="num">{lo}–{hi}%</b>
         </span>
         <span className="num">{axisMax.toFixed(0)}%</span>
       </div>

@@ -6,10 +6,10 @@ import { useTheme } from '../hooks/useTheme'
 
 type Metric = 'saving_rate_pct' | 'annual_savings_usd' | 'payback_years'
 
-const METRIC_META: Record<Metric, { label: string; better: 'high' | 'low' }> = {
-  saving_rate_pct: { label: '节油率 %', better: 'high' },
-  annual_savings_usd: { label: '年净节省 $', better: 'high' },
-  payback_years: { label: '回收期 年', better: 'low' },
+const METRIC_META: Record<Metric, { better: 'high' | 'low' }> = {
+  saving_rate_pct: { better: 'high' },
+  annual_savings_usd: { better: 'high' },
+  payback_years: { better: 'low' },
 }
 
 /** 深色主题热力色：暗底 → 紫蓝/翠绿发光，t∈[0,1] 越大越「好」。 */

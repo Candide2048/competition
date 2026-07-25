@@ -157,7 +157,7 @@ export async function postScenario(
   })
   if (!r.ok) {
     const detail = await r.json().catch(() => ({}))
-    throw new Error((detail as { detail?: string }).detail ?? `场景计算失败 ${r.status}`)
+    throw new Error((detail as { detail?: string }).detail ?? `HTTP ${r.status}`)
   }
   return r.json() as Promise<ScenarioResult>
 }
