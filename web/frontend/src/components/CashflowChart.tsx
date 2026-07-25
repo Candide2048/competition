@@ -27,7 +27,7 @@ export default function CashflowChart({
   const plotW = W - padL - padR
   const plotH = H - padT - padB
 
-  const maxYear = 20
+  const maxYear = points[points.length - 1].year
   const values = points.map((p) => p.cumulative)
   const minVal = Math.min(...values)
   const maxVal = Math.max(...values)
@@ -52,6 +52,12 @@ export default function CashflowChart({
     ? { x: toX(breakevenYear), y: toY(0) }
     : null
 
+  // X-axis tick positions (adaptive to maxYear)
+  const xTicks: number[] = []
+  const step = maxYear <= 20 ? 5 : maxYear <= 30 ? 5 : 10
+  for (let yr = 0; yr <= maxYear; yr += step) xTicks.push(yr)
+  if (xTicks[xTicks.length - 1] !== maxYear) xTicks.push(maxYear)
+
   return (
     <div className="cashflow-chart card">
       <svg
@@ -71,7 +77,7 @@ export default function CashflowChart({
         </defs>
 
         {/* Grid lines */}
-        {[0, 5, 10, 15, 20].map((y) => (
+        {xTicks.map((y) => (
           <line
             key={y}
             x1={toX(y)}
@@ -146,7 +152,7 @@ export default function CashflowChart({
         </text>
 
         {/* X axis labels */}
-        {[0, 5, 10, 15, 20].map((yr) => (
+        {xTicks.map((yr) => (
           <text
             key={yr}
             x={toX(yr)}
@@ -160,7 +166,7 @@ export default function CashflowChart({
 
         {/* End point value */}
         <text
-          x={toX(20) + 4}
+          x={toX(maxYear) + 4}
           y={toY(points[points.length - 1].cumulative)}
           textAnchor="start"
           fill={points[points.length - 1].cumulative >= 0 ? '#00ff88' : '#ff4466'}
@@ -176,14 +182,14 @@ export default function CashflowChart({
       <div className="cashflow-breakeven">
         {breakevenYear !== null ? (
           <>
-            <span>✓ 第 {breakevenYear.toFixed(1)} 年收回全部投资</span>
+            <span>✓ 第 {breakevenYear.toFixed(1)} 年收回全部投资，此后持续盈利</span>
             <span style={{ color: 'var(--muted)', fontWeight: 400 }}>
-              · 含 8% 贴现 + 2% 年维护
+              · 含 8% 贴现 + 2% 年维护 · 展示至第 {maxYear} 年
             </span>
           </>
         ) : (
           <span style={{ color: 'var(--warn)' }}>
-            ⚠ 当前参数下 20 年内未回本，建议提高海上作业比例或选择风力更优航线
+            ⚠ 当前参数下 40 年内未回本，建议提高海上作业比例或选择风力更优航线
           </span>
         )}
       </div>

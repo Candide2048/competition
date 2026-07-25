@@ -10,15 +10,32 @@ export interface CashflowPoint {
 }
 
 /**
- * 计算 0-20 年累计净现金流（含贴现 + 维护）。
- * cashflow[0] = -initialCost
- * cashflow[t] = cashflow[t-1] + annualSavings * (1-maintenance)^t / (1+discount)^t
+ * 计算 0-N 年累计净现金流（含贴现 + 维护）。
+ * 默认自动延伸到回本后 +5 年（最少 20，最多 40），
+ * 确保评委和船东能看到“开始赚钱”的拐点。
  */
 export function computeCashflow(
   initialCost: number,
   annualSavings: number,
-  years = 20,
+  fixedYears?: number,
 ): CashflowPoint[] {
+  // 如果调用方指定了年数，就用固定年数
+  if (fixedYears !== undefined) {
+    return buildPoints(initialCost, annualSavings, fixedYears)
+  }
+  // 自动延伸：先算 40 年，找到回本点后取 breakeven+5，最少显示 20 年
+  const full = buildPoints(initialCost, annualSavings, 40)
+  const beYear = findBreakevenYearFromPoints(full)
+  let showYears = 20
+  if (beYear !== null) {
+    showYears = Math.max(20, Math.ceil(beYear) + 5)
+  } else {
+    showYears = 40 // 仍未回本就展示全部 40 年
+  }
+  return full.slice(0, showYears + 1)
+}
+
+function buildPoints(initialCost: number, annualSavings: number, years: number): CashflowPoint[] {
   const points: CashflowPoint[] = [{ year: 0, cumulative: -initialCost }]
   let cum = -initialCost
   for (let t = 1; t <= years; t++) {
@@ -33,19 +50,21 @@ export function computeCashflow(
 
 /**
  * 从现金流数组中找到回本年份（线性插值到零线交叉点）。
- * 如果 20 年内未回本返回 null。
+ * 如果未找到返回 null。
  */
 export function findBreakevenYear(points: CashflowPoint[]): number | null {
+  return findBreakevenYearFromPoints(points)
+}
+
+function findBreakevenYearFromPoints(points: CashflowPoint[]): number | null {
   for (let i = 1; i < points.length; i++) {
     if (points[i].cumulative >= 0 && points[i - 1].cumulative < 0) {
-      // 线性插值
       const frac =
         -points[i - 1].cumulative /
         (points[i].cumulative - points[i - 1].cumulative)
       return points[i - 1].year + frac
     }
   }
-  // 初始就为正（极端情况）
   if (points.length > 0 && points[0].cumulative >= 0) return 0
   return null
 }
