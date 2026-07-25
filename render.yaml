@@ -1,0 +1,12 @@
+# Render.com Blueprint — 免费 Web Service
+# 用法: 把 shipping_wasp/ 推到 GitHub → Render Dashboard → New → Blueprint → 连接仓库
+services:
+  - type: web
+    name: wasp-dashboard
+    runtime: docker
+    plan: free              # 免费 (15 分钟无流量自动休眠, 首次访问冷启动 ~30s)
+    region: singapore       # 亚洲节点, 国内延迟可接受
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: "10000"      # Render 分配的内部端口

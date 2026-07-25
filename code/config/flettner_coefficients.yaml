@@ -1,0 +1,111 @@
+# Flettner 转子帆 CL/CD/CP 回归系数
+# 来源：⑤ Guzelbulut 2024 Eq.6-8, Table 2
+# 原始数据：Kwon et al. (2022) CFD 仿真数据回归
+
+metadata:
+  source: "Guzelbulut 2024 Table 2 (Kwon 2022 CFD data)"
+  formula_reference: "Guzelbulut 2024 Eq.6 (CL), Eq.7 (CD), Eq.8 (CP)"
+  coefficient_count: 34  # 13 (a) + 13 (b) + 8 (c)
+  status: "VERIFIED"  # 已从文献原文校核
+
+# 设计变量范围（⑤ §3）
+design_variables:
+  H:
+    range: [10.0, 40.0]
+    unit: "m"
+    description: "转子高度"
+  AR:
+    range: [4.0, 8.0]
+    unit: "-"
+    description: "展弦比 H/D"
+  D_e_D:
+    range: [1.5, 8.0]
+    unit: "-"
+    description: "端板直径比 D_e/D"
+  SR:
+    range: [-5.0, 5.0]
+    unit: "-"
+    description: "自旋比 (ω·R)/V_A，正值为顺时针"
+
+# 边界条件（⑤ §3）
+boundary_conditions:
+  SR_zero:
+    C_L: 0.0
+    C_D: 0.5
+    C_P: 0.0
+    note: "SR=0 时强制返回上述值（转子停转）"
+
+# CL 回归系数 a_0 到 a_12（13 个）
+# 公式：c_L = SR × [a_0 + a_1·AR + a_2·(D_e/D) + a_3·SR + a_4·AR·(D_e/D) + a_5·AR·SR + a_6·(D_e/D)·SR + a_7·AR² + a_8·(D_e/D)² + a_9·SR² + a_10·AR³ + a_11·(D_e/D)³ + a_12·SR³]
+lift_coefficients:
+  a_0: -0.0377
+  a_1: -0.0721
+  a_2: -0.0404
+  a_3: 2.9334
+  a_4: 0.0662
+  a_5: 0.0034
+  a_6: 0.0134
+  a_7: -0.0139
+  a_8: -0.0596
+  a_9: -0.8421
+  a_10: 0.0010
+  a_11: 0.0027
+  a_12: 0.0673
+
+# CD 回归系数 b_0 到 b_12（13 个）
+# 公式：c_D = b_0 + b_1·AR + b_2·(D_e/D) + b_3·SR + b_4·AR·(D_e/D) + b_5·AR·SR + b_6·(D_e/D)·SR + b_7·AR² + b_8·(D_e/D)² + b_9·SR² + b_10·AR³ + b_11·(D_e/D)³ + b_12·SR³
+drag_coefficients:
+  b_0: 0.1256
+  b_1: 0.2201
+  b_2: 0.1775
+  b_3: 0.1246
+  b_4: -0.0017
+  b_5: -0.0765
+  b_6: -0.0808
+  b_7: -0.0674
+  b_8: -0.0405
+  b_9: 0.5613
+  b_10: 0.0055
+  b_11: 0.0036
+  b_12: -0.0720
+
+# CP 回归系数 c_0 到 c_7（8 个）
+# 公式：c_P = exp(c_0 + c_1·SR + c_2·SR² + c_3·AR + c_4·AR² + c_5·(D_e/D) + c_6·(D_e/D)² + c_7·(D_e/D)³)
+power_coefficients:
+  c_0: -9.5158
+  c_1: 2.2700
+  c_2: -0.1934
+  c_3: -0.0758
+  c_4: -0.0017
+  c_5: 2.4739
+  c_6: -0.2542
+  c_7: 0.0127
+
+# 验证锚点（用于 test_flettner.py）
+verification_anchors:
+  SR_zero:
+    expected: [0.0, 0.5, 0.0]
+    tolerance: 1.0e-6
+  typical_operation:
+    SR: 2.0
+    AR: 6.0
+    D_e_D: 2.0
+    CL_expected_range: [4.0, 12.0]  # ③ 综述典型区间
+    note: "③ 赵大刚 2026 综述 CL 峰值 9.5-17.97"
+  peak_operation:
+    SR: 3.0
+    AR: 6.0
+    D_e_D: 2.0
+    CL_expected_range: [10.0, 18.0]  # ③ 综述峰值区间
+    note: "SR=3 时 CL 接近峰值，⑤ Kwon CFD 数据"
+  cd_positive:
+    description: "C_D 在所有 SR 下应为正值（阻力恒正）"
+  cp_positive:
+    description: "C_P 在所有 SR 下应为正值（功耗恒正）"
+
+# 物理约束（⑤ §3）
+physical_constraints:
+  CL_peak_range: [9.5, 17.97]  # ③ 综述 Flettner CL 峰值
+  CD_always_positive: true
+  CP_always_positive: true
+  thrust_positive_at_crosswind: true  # beta≈π/2 时 T>0

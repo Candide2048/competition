@@ -1,0 +1,113 @@
+# 经济性参数 + 船东输入参数 schema
+# 设计原则（对齐 Norsepower/bound4blue 案例评估思路）：
+#   把「成本/年运营小时/航速/油价/碳价」等不确定量作为船东输入参数，
+#   由本系统做整体评估与敏感性分析，而非写死单一假设。
+# 由 analytics/economics.py load_economics_from_config() 与
+#   core/owner_inputs.py OwnerInputs 读取。
+
+# ═══════════════════════════════════════════════════════════
+# 1. 经济性默认参数（可被船东输入覆盖）
+# ═══════════════════════════════════════════════════════════
+fuel_price: 0.6          # USD/kg (VLSFO 2025: 485-650 $/t，取上沿偏保守)
+co2_price: 74.0          # EUR/tCO2 (EU ETS 2025 年均)
+work_rate: 1.0           # 风帆工作率（逐小时物理仿真已隐含折减，矩阵用 1.0）
+discount_rate: 0.08      # 贴现率
+maintenance_rate: 0.02   # 年维护成本率 = 2% 初始成本
+investment_years: [5, 10, 15, 20]
+
+# Guzelbulut 2024 Eq.11 初始成本系数（仅 phase_b_full_voyage 使用）
+a_cost: 2500.0           # USD/m²
+b_cost: 800.0            # USD/(m³/s)
+
+# ═══════════════════════════════════════════════════════════
+# 2. 船东输入参数 schema（Norsepower Simplified Simulator 同款维度）
+#    每项含 default / range / unit / source，供前端表单与敏感性分析使用。
+# ═══════════════════════════════════════════════════════════
+owner_inputs:
+  sail_type:
+    default: "flettner"
+    options: ["flettner", "rigid_wing", "suction_wing"]
+    description: "风帆技术类型"
+  flettner_spec:
+    default: "24x4"
+    options: ["20x4", "24x4", "28x4", "30x5", "35x5"]
+    description: "Norsepower 旋筒帆标准规格 (H×D 米)，仅 flettner 生效"
+  ship_type:
+    default: "kvlcc2"
+    options: ["kvlcc2", "kamsarmax", "mr_tanker", "container"]
+    description: "船型（决定几何/水动力/CII 参考线）：kvlcc2=VLCC 30万DWT / kamsarmax=散货 8.2万DWT / mr_tanker=成品油轮 5万DWT / container=集装箱 KCS 4万DWT"
+  route:
+    default: "middle_east_china"
+    description: "航行路线（routes.yaml 中的走廊 key）"
+  route_weights:
+    default: null           # null = 单航线 route @100%；否则 {走廊 key: 权重}
+    description: "多航线加权占比（对齐 case_study 船舶1-5 航线年占比），resolved_routes 归一化"
+  ship_speed_kn:
+    default: 14.0
+    range: [8.0, 18.0]
+    unit: "kn"
+    description: "船舶航速"
+  sea_operating_ratio:
+    default: 0.742
+    range: [0.4, 0.95]
+    unit: "-"
+    description: "海上作业时间比例 = 年航行小时数 / 8765（VLCC 典型 ≈0.74）"
+  fuel_type:
+    default: "VLSFO"
+    options: ["VLSFO", "HFO", "MGO", "MDO", "LNG", "METHANOL"]
+    description: "主要燃料类型，决定 CO₂ 排放因子 C_F（权威值见 cii.py EMISSION_FACTORS）"
+  sfoc_g_per_kwh:
+    default: 180.0
+    range: [160.0, 210.0]
+    unit: "g/kWh"
+    description: "主机比油耗（Norsepower 数据表标称 180 g/kWh VLSFO）"
+  fuel_price_usd_per_kg:
+    default: 0.6
+    range: [0.4, 0.9]
+    unit: "USD/kg"
+    description: "燃油价格 (VLSFO)"
+  co2_price_eur_per_t:
+    default: 74.0
+    range: [40.0, 120.0]
+    unit: "EUR/tCO2"
+    description: "碳价 (EU ETS)"
+  unit_cost_usd:
+    default: null           # null = 用 sail_types.yaml 对应帆型/规格默认值
+    unit: "USD/台"
+    description: "单台风帆采购+安装成本（船东可按实际报价覆盖）"
+
+# ═══════════════════════════════════════════════════════════
+# 3. 成本来源锚点（用于申报书经济性引用溯源）
+# ═══════════════════════════════════════════════════════════
+cost_sources:
+  flettner:
+    range_usd: [1000000, 3000000]
+    default_usd: 1500000
+    references:
+      - "IMO GreenVoyage2050: 单台 Flettner 安装约 $0.4-1M（随规格）"
+      - "行业市场报告: $1-3M/台"
+      - "Carjova 2025 Sustainability (同行评议, 被引): €2M 投资 + €0.1M 安装/台"
+  rigid_wing:
+    range_usd: [1500000, 3000000]
+    default_usd: 2000000
+    references:
+      - "基于 Oceanbird / bound4blue 公开信息粗估，未经报价核实"
+  suction_wing:
+    range_usd: [600000, 1200000]
+    default_usd: 800000
+    references:
+      - "基于 bound4blue eSAIL 公开信息粗估，未经报价核实"
+
+# ═══════════════════════════════════════════════════════════
+# 4. 外部验证锚点（Norsepower 官方数据表反推交叉验证）
+#    来源: data/Datasheets_Norsepower_CN_v2.pdf（9 组真实航线数据）
+#    校核脚本: verify_norsepower_datasheet.py；详见
+#    refs/Norsepower数据表_可用数据提取与交叉验证.md
+# ═══════════════════════════════════════════════════════════
+validation_anchors:
+  co2_factor_vlsfo: 3.114     # 反推均值 3.1139，与本项目模型 3.114 一致(<0.1%)
+  sfoc_g_per_kwh: 180.0       # 反推均值 180.4，数据表标称 180 g/kWh(VLSFO)
+  vlsfo_price_usd_per_t: 650  # 数据表口径 = 0.65 USD/kg（落在 fuel_price 区间内）
+  eu_ets_usd_per_t_co2: 75    # 数据表口径（落在 co2_price 区间内）
+  sea_operating_days: 255     # → sea_operating_ratio ≈ 0.70（255/365）
+  note: "经济性/碳换算链正算校核最大误差 0.38%，构成第三方外部验证证据"

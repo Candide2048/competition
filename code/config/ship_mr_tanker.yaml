@@ -1,0 +1,48 @@
+# MR 成品油轮船型参数（50000 DWT）
+# 定位: 面向成品油轮船东的 WASP 选型算例基准船之一
+# 主尺度来源: Norsepower 官方数据表参考船 (DWT 50000 / LOA 186m / 2×35×5 帆 / 5000kW / 14kn)
+#            见 refs/Norsepower数据表_可用数据提取与交叉验证.md 第 20 行
+# 水动力系数: 按 MR (Medium Range) 级成品/化学品油轮公开典型值填写（满载工况），
+#            量级用于改装前上游筛选，非逐参数实测；与 KVLCC2 同一 Holtrop 简化口径。
+
+principal_dimensions:
+  L: 178.0          # 垂线间长 (m), 由 LOA 186m 按 MR 典型 LOA/Lpp≈1.045 折算
+  B: 32.20          # 型宽 (m), MR 油轮标准型宽
+  d: 12.20          # 设计吃水 (m), MR 满载吃水典型值
+  V_disp: 56640.0   # 排水体积 (m³) = L·B·d·C_B ≈ 排水量 58kt/1.025，与 50kt DWT+自重相符
+  C_B: 0.810        # 方形系数, 成品油轮满载典型 0.78-0.82
+  D: 6.0            # 螺旋桨直径 (m), MR 油轮典型
+  S_rudder: 38.0    # 舵面积 (m²)
+  x_G: 0.0          # 重心纵向位置 (m, 相对舯)
+
+hydrostatic_coefficients:
+  C_M: 0.9900       # 舯剖面系数, 油轮舯剖面典型
+  C_P: 0.8182       # 棱形系数 = C_B/C_M = 0.810/0.990
+  C_WP: 0.8733      # 水线面系数, 经验式 (1+2·C_B)/3
+  lcb: 2.00         # 浮心纵向位置 (%L, 舯前为正), 油轮满载 LCB 前移典型 +1.5~+2.5%
+
+bow_and_stern:
+  A_BT: 0.0         # 球鼻艏横截面积 (m²), 同 KVLCC2 简化口径（不计球鼻艏减阻）
+  h_B: 0.0          # 球鼻艏高度 (m)
+  C_stern: 0.0      # 尾型参数 (0=V型尾)
+
+appendages:
+  S_app: 42.75      # 附体湿面积 (m²), 舵双面湿面积估算 (≈舵面积×1.125)
+  k2_eq: 1.3        # 附体阻力系数等价 (舵典型值)
+
+operational:
+  DWT: 50000.0      # 载重吨 (t), Norsepower 数据表参考值
+  V_design_kn: 14.0 # 设计航速 (kn), Norsepower 数据表服务航速
+  V_design_ms: 7.20 # 设计航速 (m/s) = 14 × 0.5144
+  ship_type_imo: "tanker"  # IMO 船型 (用于 CII 参考线, cii.py SHIP_TYPE_CII_PARAMS)
+
+wind_resistance:
+  A_T: 600.0        # 横剖面受风面积 (m²), 按尺度自 KVLCC2 缩放
+  A_L: 2800.0       # 侧向受风面积 (m²), 按尺度自 KVLCC2 缩放
+  C_X_head: 0.90    # 顶风阻力系数
+  C_X_cross: 1.20   # 横风阻力系数
+  C_X_tail: 0.50    # 顺风阻力系数
+
+seawater:
+  rho_sw: 1025.0    # 海水密度 (kg/m³)
+  nu_sw: 1.19e-6    # 海水运动粘度 (m²/s, 15°C)

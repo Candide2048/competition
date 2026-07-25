@@ -1,0 +1,191 @@
+# 3 种帆型气动参数配置
+# 来源: IET Song 2025 Table 2 / 赵大刚 2026 综述 / Guzelbulut 2024 / 船舶风帆技术数据搜集表.xlsx
+# 更新日期: 2026-07-20
+
+# ═══════════════════════════════════════════════════════════
+# 1. Flettner 旋筒帆 (Rotor Sail)
+# ═══════════════════════════════════════════════════════════
+# CL/CD 由 spin ratio (SR) 决定，使用 Guzelbulut 2024 回归公式
+# 已在 code/models/aerodynamics/flettner.py 实现
+# 此处仅记录参考几何与性能范围
+
+flettner:
+  description: "Flettner 旋筒帆 (Magnus 效应)"
+  manufacturer_ref: "Norsepower"
+  geometry:
+    H: 24.0           # 转子高度 (m)  ← 默认规格 (Norsepower 24×4)
+    D: 4.0            # 转子直径 (m)
+    AR: 6.0           # 展弦比 H/D
+    D_e_D: 3.0        # 端板直径比
+    projected_area: 96.0  # 单台投影面积 H×D (m²)
+  # ── Norsepower 5 种标准规格 (官网 norsepower.cn/rotorsails 公布) ──
+  # 船东可按需选型，气动模型 (Guzelbulut 2024 回归) 有效域 H∈[10,40]、AR∈[4,8]，
+  # 5 种规格全部落在有效域内，无需额外物理外推。
+  # unit_cost_usd 为「面积比例估算」(以 24×4=96 m²→$1.5M 为锚点线性缩放)，
+  # 均落在文献区间 $1-3M/台内 (见 config/economics.yaml cost_sources)。
+  specifications:
+    "20x4":
+      H: 20.0
+      D: 4.0
+      AR: 5.0
+      D_e_D: 3.0
+      projected_area: 80.0
+      unit_cost_usd: 1250000
+    "24x4":
+      H: 24.0
+      D: 4.0
+      AR: 6.0
+      D_e_D: 3.0
+      projected_area: 96.0
+      unit_cost_usd: 1500000
+    "28x4":
+      H: 28.0
+      D: 4.0
+      AR: 7.0
+      D_e_D: 3.0
+      projected_area: 112.0
+      unit_cost_usd: 1750000
+    "30x5":
+      H: 30.0
+      D: 5.0
+      AR: 6.0
+      D_e_D: 3.0
+      projected_area: 150.0
+      unit_cost_usd: 2340000
+    "35x5":
+      H: 35.0
+      D: 5.0
+      AR: 7.0
+      D_e_D: 3.0
+      projected_area: 175.0
+      unit_cost_usd: 2730000
+  aero:
+    CL_max: 17.97     # 最大升力系数 (③ 赵大刚 2026, Cao et al.)
+    CL_typical: 8.5   # 典型工作 CL (SR=2.73)
+    CD_typical: 1.2   # 典型阻力系数
+    SR_opt_range: [2.0, 3.5]  # 最优转速比范围
+    L_D_max: 7.8      # 最大升阻比 (③ 赵大刚 2026)
+  power:
+    rotor_power_per_sail_kW: 50  # 单台转子驱动功耗 (典型)
+  performance:
+    saving_rate_range: [0.05, 0.15]  # 实船节油率范围
+    ref_MV_Estraden: "双转子 6.1% (Norsepower, 2014)"
+    ref_Chinook: "三转子北太平洋 10-15% (Norsepower)"
+    ref_Maersk_Pelican: "2×24×4 实测 8.2%"
+  cost:
+    unit_cost_usd: 1500000        # 默认单台 (24×4)，船东可覆盖
+    unit_cost_range_usd: [1000000, 3000000]  # 文献区间 $1-3M/台
+    cost_source: "IMO GreenVoyage2050 (安装 $0.4-1M) + Carjova 2025 Sustainability (€2M+€0.1M/台，同行评议)"
+
+# ═══════════════════════════════════════════════════════════
+# 2. 刚性翼帆 (Rigid Wing Sail / Hard Sail)
+# ═══════════════════════════════════════════════════════════
+# CL/CD 由攻角 (angle of attack) 决定
+# 数据来源: IET Song 2025 Table 2 (风洞试验, AR=1.40, S=101.2 m²)
+# 补充: 赵大刚 2026 (NACA 翼型对比, 多元素翼帆 CL_max 提升 27%)
+
+rigid_wing:
+  description: "刚性翼帆 (硬质翼帆, 基于升力的翼型)"
+  manufacturer_ref: "Oceanbird Wing560 / bound4blue / 中国 DSIC"
+  geometry:
+    H: 37.5           # 帆高 (m, Pyxis Ocean / Berge Olympus)
+    chord: 20.0       # 弦长 (m, Berge Olympus 翼帆宽)
+    AR: 1.875         # 展弦比 H/chord
+    projected_area: 750.0  # 单帆投影面积 (m², 37.5×20)
+    max_thickness: 1.57   # 最大厚度 (m, Song 2025)
+  aero:
+    # Song 2025 Table 2: 风洞测试 CL/CD vs 攻角 (AR=1.40, S=101.2 m²)
+    # 注意: CD@90°=0.00 物理上可疑，可能为数据错误
+    CL_vs_aoa:
+      aoa_deg: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+      CL:      [0.06, 0.16, 0.34, 0.65, 0.97, 1.05, 1.22, 1.29, 1.37, 1.38]
+      CD:      [0.31, 0.71, 1.05, 1.34, 1.31, 0.92, 0.74, 0.50, 0.26, 0.00]
+    CL_max: 1.38      # 最大升力系数 (Song 2025, 单翼)
+    CL_max_with_flap: 1.75  # 带襟翼 (赵大刚: +27% → 1.38×1.27)
+    CL_max_double_element: 2.0  # 双元素翼帆 (赵大刚: 主翼+缝翼)
+    CD_min: 0.26      # 最小阻力系数 (80° AoA)
+    L_D_max: 3.1      # 最大升阻比 (CL/CD ≈ 0.97/0.31 at ~40°)
+    stall_aoa_deg: 40  # 失速攻角 (CL 开始下降)
+    # 赵大刚 2026 补充:
+    # - 圆弧型硬帆推力较软帆高 25-30%，最佳拱度比 0.14-0.16
+    # - E型帆在 25°-30° 攻角时升力系数与力矩最优
+    # - 风向角 <17° 时帆体产生阻力，>68° 时展开风帆推力最大
+    # - NACA 翼型 vs 弧形帆: 月牙形在侧风/顺风优于对称 NACA
+  power:
+    rotor_power_per_sail_kW: 0  # 无机械驱动 (仅自动转帆电机, 忽略)
+  performance:
+    saving_rate_range: [0.07, 0.14]  # 实船节油率范围
+    ref_Pyxis_Ocean: "2× 37.5m 翼帆, 14% 日均节油 (DNV 验证)"
+    ref_Berge_Olympus: "4× 37.5m 翼帆, 6 t/天节油 (中国-巴西航线)"
+    ref_New_Aden: "4× 40m 翼帆 (1200 m²/帆), 预计 9.8% (VLCC, DSIC)"
+    ref_Oceanbird: "Wing560 单翼 7-10%, 年省 600t 柴油"
+  cost:
+    unit_cost_usd: 2000000        # 单帆估计 ~$2M (含安装)，船东可覆盖
+    unit_cost_range_usd: [1500000, 3000000]  # 文献/公开信息区间
+    cost_source: "基于 Oceanbird / bound4blue 公开信息粗估，未经报价核实"
+
+# ═══════════════════════════════════════════════════════════
+# 3. 吸力帆 (Suction Wing / Aspiration Sail)
+# ═══════════════════════════════════════════════════════════
+# CL/CD 由吸力速率 (suction rate) 和攻角共同决定
+# 数据来源: 船舶风帆技术数据搜集表.xlsx (bound4blue "升力是传统帆 6-7 倍")
+# 补充: 赵大刚 2026 (仅 1 处提及吸力帆, 无详细气动数据)
+# 注意: 无公开 CL/CD 曲线, 以下为基于文献的估算值
+
+suction_wing:
+  description: "吸力帆 (边界层抽吸延迟分离, 高升力)"
+  manufacturer_ref: "bound4blue eSAIL / Ecowind"
+  geometry:
+    H: 22.0           # 帆高 (m, bound4blue Model 2-22)
+    chord: 3.0        # 弦长 (m, 估算)
+    AR: 7.33          # 展弦比 H/chord
+    projected_area: 66.0  # 单帆投影面积 (m²)
+  aero:
+    # 无公开 CL/CD 曲线，以下为估算值
+    # 依据: bound4blue "升力是传统帆 6-7 倍"
+    # 传统软帆 CL ≈ 1.0-1.5 → 吸力帆 CL ≈ 6-10.5
+    CL_max: 7.0       # 最大升力系数 (估算中值)
+    CL_typical: 5.0   # 典型工作 CL
+    CD_typical: 0.5   # 典型阻力系数 (估算, 含吸力系统附加阻力)
+    CD_min: 0.15      # 最小阻力系数 (低攻角)
+    L_D_max: 12.0     # 最大升阻比 (估算, 吸力翼型典型 8-15)
+    stall_aoa_deg: 25  # 失速攻角 (吸力延迟分离, 比普通翼型高)
+    # 吸力系统参数:
+    suction_power_per_sail_kW: 15  # 单帆吸力风扇功耗 (MV Ankie: 2×15 kW)
+    suction_rate: 0.02   # 吸力系数 (估算, 典型边界层吸力)
+  power:
+    rotor_power_per_sail_kW: 15  # 吸力风扇功耗 (kW)
+  performance:
+    saving_rate_range: [0.05, 0.20]  # 实船节油率范围 (有利风况峰值 >20%)
+    ref_Pacific_Sentinel: "3-4× Model 2-22, 平均 8% 净功率降低, 5.5% 净节油, 峰值 >20%"
+    ref_Ville_de_Bordeaux: "3× 22m, 日均节油 1.7t, 峰值 5.4t, 年省 560t 燃油"
+    ref_MV_Ankie: "2× 13m 可收放吸力帆, 估计 4.5% 节油"
+    ref_Maersk_Tankers: "5 艘油轮共 20× 24m eSAIL"
+    ref_Frisian_Sea: "2× 3×10m, 实测仅 2-4% (Ecowind)"
+  cost:
+    unit_cost_usd: 800000         # 单帆估计 ~$0.8M (含安装)，船东可覆盖
+    unit_cost_range_usd: [600000, 1200000]  # 文献/公开信息区间
+    cost_source: "基于 bound4blue eSAIL 公开信息粗估，未经报价核实"
+
+# ═══════════════════════════════════════════════════════════
+# 帆型对比摘要 (用于申报书/效益矩阵)
+# ═══════════════════════════════════════════════════════════
+comparison_summary:
+  flettner:
+    CL_range: "8-18 (SR 依赖)"
+    L_D: "~7.8"
+    power_needed: "转子驱动 ~50 kW/台"
+    maturity: "最成熟, 90+ 安装"
+    best_for: "油轮/气体运输船 (安全要求高)"
+  rigid_wing:
+    CL_range: "1.0-2.0 (AoA 依赖)"
+    L_D: "~3.1 (单翼), ~5-7 (多元素)"
+    power_needed: "无 (自动转帆)"
+    maturity: "快速发展, 10+ 安装"
+    best_for: "散货船/矿砂船 (甲板面积大)"
+  suction_wing:
+    CL_range: "5-10 (吸力速率依赖)"
+    L_D: "~8-12"
+    power_needed: "吸力风扇 ~15 kW/台"
+    maturity: "商业化初期, 5+ 安装"
+    best_for: "中小型货船/油轮 (可收放设计)"

@@ -1,0 +1,55 @@
+# === 部署仓库：只保留核心代码+前端构建+Docker配置 ===
+
+# 大体积数据
+data/
+refs/
+*.nc
+*.pdf
+*.xlsx
+*.docx
+*.bib
+
+# 研究/辅助脚本（非部署必需）
+batch_extract_pdf.py
+check_netcdf*.py
+merge_and_analyze*.py
+verify_*.py
+_verify_*.png
+_diag*.py
+
+# 文档（非部署必需）
+*申报书*.md
+*计划书*.md
+*指南*.md
+ERA5*.md
+*交接报表*.md
+
+# 前端源码（只提交 dist）
+web/frontend/node_modules/
+web/frontend/src/
+web/frontend/package*.json
+web/frontend/tsconfig.json
+web/frontend/vite.config.ts
+web/frontend/index.html
+web/run_dev.ps1
+
+# 开发/构建产物
+__pycache__/
+*.pyc
+.pytest_cache/
+code/results/phase_*
+
+# IDE / 工具
+.idea/
+.vscode/
+.trae/
+.handoff/
+.claude/
+.gstack/
+.streamlit/
+
+# 其他
+*.log
+*.tar.gz
+*.zip
+mineru_test/

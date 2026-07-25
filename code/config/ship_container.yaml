@@ -1,0 +1,50 @@
+# 集装箱船船型参数（KCS / KRISO Container Ship, ~Panamax 级）
+# 定位: 面向集装箱船东的 WASP 选型算例基准船之一
+# 主尺度来源: KRISO Container Ship (KCS)，SIMMAN 2008 / Gothenburg 2010 标准算例船，
+#            与 KVLCC2 同属公开水动力基准船库，参数权威可复核。
+# 水动力系数: 取 SIMMAN 2008 官方值；与 KVLCC2 采用同一 Holtrop 简化口径
+#            (A_BT=0, C_stern=0，不逐项计入球鼻艏减阻)。
+# 载重吨: KCS 为研究型线无官方 DWT，按设计吃水排水量 × 集装箱船典型载重系数
+#        (DWT/排水量≈0.70) 估算，仅用于 CII 参考线的 DWT 基数，可被船东覆盖。
+
+principal_dimensions:
+  L: 230.0          # 垂线间长 Lpp (m), SIMMAN 2008 官方值
+  B: 32.2           # 型宽 (m), SIMMAN 2008
+  d: 10.8           # 设计吃水 (m), SIMMAN 2008
+  V_disp: 52030.0   # 排水体积 (m³), SIMMAN 2008 官方值
+  C_B: 0.6505       # 方形系数, SIMMAN 2008 (集装箱船瘦削船体典型 0.60-0.68)
+  D: 7.9            # 螺旋桨直径 (m), SIMMAN 2008 (MOERI KP505)
+  S_rudder: 54.45   # 舵面积 (m²), KCS 半悬挂舵
+  x_G: 0.0          # 重心纵向位置 (m, 相对舯), 阻力计算用 lcb，此处置 0
+
+hydrostatic_coefficients:
+  C_M: 0.9849       # 舯剖面系数, SIMMAN 2008 官方值
+  C_P: 0.6605       # 棱形系数 = C_B/C_M = 0.6505/0.9849
+  C_WP: 0.7864      # 水线面系数, SIMMAN 2008
+  lcb: -1.48        # 浮心纵向位置 (%L, 舯前为正), SIMMAN 2008 (KCS 舯后 -1.48%)
+
+bow_and_stern:
+  A_BT: 0.0         # 球鼻艏横截面积 (m²), 同 KVLCC2 简化口径（不计球鼻艏减阻）
+  h_B: 0.0          # 球鼻艏高度 (m)
+  C_stern: 0.0      # 尾型参数 (0=V型尾)
+
+appendages:
+  S_app: 61.3       # 附体湿面积 (m²), 舵双面湿面积估算 (≈舵面积×1.125)
+  k2_eq: 1.3        # 附体阻力系数等价 (舵典型值)
+
+operational:
+  DWT: 40000.0      # 载重吨 (t), 由排水量 53331t × 集装箱典型载重系数≈0.75 估算（研究船无官方 DWT）
+  V_design_kn: 24.0 # 设计航速 (kn), KCS 设计 Fn=0.26
+  V_design_ms: 12.35 # 设计航速 (m/s) = 24 × 0.5144
+  ship_type_imo: "container_ship"  # IMO 船型 (用于 CII 参考线, cii.py SHIP_TYPE_CII_PARAMS)
+
+wind_resistance:
+  A_T: 1100.0       # 横剖面受风面积 (m²), 集装箱甲板堆箱迎风面较大, 按尺度估算
+  A_L: 6500.0       # 侧向受风面积 (m²), 按尺度估算
+  C_X_head: 0.90    # 顶风阻力系数
+  C_X_cross: 1.20   # 横风阻力系数
+  C_X_tail: 0.50    # 顺风阻力系数
+
+seawater:
+  rho_sw: 1025.0    # 海水密度 (kg/m³)
+  nu_sw: 1.19e-6    # 海水运动粘度 (m²/s, 15°C)

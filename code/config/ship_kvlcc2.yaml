@@ -1,0 +1,44 @@
+# KVLCC2 船型参数 (SIMMAN 2008 基准 + ⑤ Guzelbulut 2024)
+# 来源: refs/文献数据溯源对照表.md
+
+principal_dimensions:
+  L: 320.0          # 垂线间长 (m), SIMMAN 2008
+  B: 58.0           # 型宽 (m), SIMMAN 2008
+  d: 20.8           # 设计吃水 (m), SIMMAN 2008
+  V_disp: 312622.0  # 排水体积 (m³), SIMMAN 2008 官方值
+  C_B: 0.8098       # 方形系数, SIMMAN 2008 (∇/(L·B·d))
+  D: 9.86           # 螺旋桨直径 (m), SIMMAN 2008 (MOERI KP458)
+  S_rudder: 100.0   # 舵面积 (m²)
+  x_G: 0.0          # 重心纵向位置 (m, 相对舯)
+
+hydrostatic_coefficients:
+  C_M: 0.9980       # 舯剖面系数, SIMMAN 2008 官方值
+  C_P: 0.8114       # 棱形系数 = C_B/C_M = 0.8098/0.998
+  C_WP: 0.8722      # 水线面系数, 经验式 (1+2·C_B)/3 估算
+  lcb: 3.48         # 浮心纵向位置 (%L, 舯前为正), SIMMAN 2008 (+3.48% Lpp forward)
+
+bow_and_stern:
+  A_BT: 0.0         # 球鼻艏横截面积 (m²)
+  h_B: 0.0          # 球鼻艏高度 (m)
+  C_stern: 0.0      # 尾型参数 (0=V型尾, 10=U型尾)
+
+appendages:
+  S_app: 112.5      # 附体湿面积 (m²), 舵双面湿面积估算 (≈舵面积×1.125)
+  k2_eq: 1.3        # 附体阻力系数等价 (舵典型值)
+
+operational:
+  DWT: 300000.0     # 载重吨 (t)
+  V_design_kn: 14.0 # 设计航速 (kn)
+  V_design_ms: 7.20 # 设计航速 (m/s)
+  ship_type_imo: "tanker"  # IMO 船型 (用于 CII 参考线)
+
+wind_resistance:
+  A_T: 1200.0       # 横剖面受风面积 (m²)
+  A_L: 5500.0       # 侧向受风面积 (m²)
+  C_X_head: 0.90    # 顶风阻力系数
+  C_X_cross: 1.20   # 横风阻力系数
+  C_X_tail: 0.50    # 顺风阻力系数
+
+seawater:
+  rho_sw: 1025.0    # 海水密度 (kg/m³)
+  nu_sw: 1.19e-6    # 海水运动粘度 (m²/s, 15°C)
