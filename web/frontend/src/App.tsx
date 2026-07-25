@@ -100,7 +100,10 @@ export default function App() {
 
             {/* 核心答案区：回收期 + 年净节省 + 节油率 */}
             <Reveal>
-              <p className="eyebrow">核心效益指标</p>
+              <div className="section-header">
+                <span className="eyebrow">核心效益</span>
+                <h2 className="section-title">投资回收与节能指标</h2>
+              </div>
               {!data.speed_exact && (
                 <div className="note">
                   航速 {req.speed.toFixed(1)} kn 不在标准集，已取最近邻{' '}
@@ -114,8 +117,10 @@ export default function App() {
 
             {/* 累计现金流曲线 */}
             <Reveal>
-              <p className="eyebrow">投资回报曲线</p>
-              <h2 className="section-title">累计净现金流（含贴现）</h2>
+              <div className="section-header">
+                <span className="eyebrow">投资回报</span>
+                <h2 className="section-title">累计净现金流（含贴现）</h2>
+              </div>
               <CashflowChart
                 initialCost={data.cell.initial_cost_usd}
                 annualSavings={data.cell.annual_savings_usd}
@@ -126,8 +131,10 @@ export default function App() {
 
             {/* CII 评级跃迁 */}
             <Reveal>
-              <p className="eyebrow">IMO 碳强度合规</p>
-              <h2 className="section-title">CII 评级跃迁</h2>
+              <div className="section-header">
+                <span className="eyebrow">IMO合规</span>
+                <h2 className="section-title">CII 评级跃迁 · 避免合规罚款</h2>
+              </div>
               <div className="cii-row">
                 <CiiBadge
                   baseline={data.cell.cii_rating_baseline}
@@ -144,8 +151,10 @@ export default function App() {
 
             {/* 三帆型 PK */}
             <Reveal>
-              <p className="eyebrow">帆型对比</p>
-              <h2 className="section-title">三帆型横向 PK（同条件对比）</h2>
+              <div className="section-header">
+                <span className="eyebrow">帆型PK</span>
+                <h2 className="section-title">三帆型同条件横向对比</h2>
+              </div>
               <SailCompare
                 ship={req.ship}
                 route={req.route}
@@ -161,8 +170,10 @@ export default function App() {
 
             {/* 实船报道对照 */}
             <Reveal>
-              <p className="eyebrow">实船报道对照</p>
-              <h2 className="section-title">节油率 vs 公开实船报道区间</h2>
+              <div className="section-header">
+                <span className="eyebrow">实船校验</span>
+                <h2 className="section-title">节油率 vs 公开报道区间</h2>
+              </div>
               <BenchmarkBar
                 value={data.cell.saving_rate_pct}
                 lo={data.bench.lo}
@@ -175,8 +186,10 @@ export default function App() {
 
             {/* 效益矩阵热力图 */}
             <Reveal>
-              <p className="eyebrow">效益矩阵</p>
-              <h2 className="section-title">帆型 × 航速 效益全景</h2>
+              <div className="section-header">
+                <span className="eyebrow">全景矩阵</span>
+                <h2 className="section-title">帆型 × 航速 效益热力图</h2>
+              </div>
               <MatrixHeatmap
                 ship={req.ship}
                 route={req.route}
@@ -191,8 +204,10 @@ export default function App() {
 
             {/* 航线地图 */}
             <Reveal>
-              <p className="eyebrow">航线</p>
-              <h2 className="section-title">{data.route_name}</h2>
+              <div className="section-header">
+                <span className="eyebrow">航线</span>
+                <h2 className="section-title">{data.route_name}</h2>
+              </div>
               <RouteMap
                 key={req.route}
                 waypoints={data.route_waypoints}
@@ -207,8 +222,10 @@ export default function App() {
 
             {/* 技术报告 */}
             <Reveal>
-              <p className="eyebrow">分析报告</p>
-              <h2 className="section-title">自动生成技术报告</h2>
+              <div className="section-header">
+                <span className="eyebrow">报告</span>
+                <h2 className="section-title">自动生成技术分析</h2>
+              </div>
               <ReportPanel md={data.report_md} />
             </Reveal>
           </>

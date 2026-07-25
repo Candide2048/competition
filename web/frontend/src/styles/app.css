@@ -302,7 +302,7 @@ input[type='range']::-moz-range-thumb {
 
 /* ══════════════ Hero ══════════════ */
 .hero {
-  padding: clamp(56px, 8vw, 100px) 0 40px;
+  padding: clamp(40px, 6vw, 72px) 0 28px;
 }
 .hero-title {
   font-family: var(--font-display);
@@ -324,15 +324,15 @@ input[type='range']::-moz-range-thumb {
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 .kpi {
-  padding: 22px 22px 20px;
+  padding: 18px 20px 16px;
   border-radius: var(--radius);
-  min-height: 132px;
+  min-height: 110px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .kpi-label {
   font-size: 12px;
@@ -344,7 +344,7 @@ input[type='range']::-moz-range-thumb {
 .kpi-value {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -413,7 +413,7 @@ input[type='range']::-moz-range-thumb {
 
 /* ══════════════ CII 徽章 ══════════════ */
 .cii-row {
-  margin-top: 20px;
+  margin-top: 8px;
 }
 .cii-badge {
   display: inline-flex;
@@ -787,7 +787,7 @@ input[type='range']::-moz-range-thumb {
 
 /* ══════════════ Cashflow Chart ══════════════ */
 .cashflow-chart {
-  padding: 24px;
+  padding: 16px;
 }
 .cashflow-svg {
   width: 100%;
@@ -812,17 +812,17 @@ input[type='range']::-moz-range-thumb {
 .sail-compare {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 .sail-card {
-  padding: 20px;
+  padding: 16px;
   border-radius: var(--radius);
   background: var(--card);
   border: 1px solid var(--border);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .sail-card:hover {

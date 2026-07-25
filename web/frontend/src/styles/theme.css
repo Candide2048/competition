@@ -80,38 +80,78 @@ body {
 .main {
   flex: 1;
   min-width: 0;
-  padding: 0 clamp(20px, 5vw, 72px) 120px;
+  padding: 0 clamp(20px, 5vw, 72px) 80px;
+  counter-reset: wasp-section;
 }
 
-.section {
-  max-width: 1180px;
-  margin: 0 auto;
+/* 段落标题：eyebrow + title 合为紧凑单行 */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 18px;
 }
-
 .eyebrow {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent2);
-  margin: 0 0 14px;
+  color: var(--accent);
+  margin: 0;
+  padding: 3px 10px;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .section-title {
   font-family: var(--font-display);
-  font-size: clamp(22px, 2.4vw, 30px);
+  font-size: clamp(18px, 2vw, 24px);
   font-weight: 600;
   letter-spacing: -0.01em;
-  margin: 0 0 24px;
+  margin: 0;
   color: var(--text);
 }
 
+/* 段落分隔：紧凑 + 左侧流动线装饰 */
 .divider {
   height: 1px;
-  background: var(--border);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--border) 30%, transparent 100%);
   border: 0;
-  margin: 72px 0;
+  margin: 36px 0;
+  position: relative;
+}
+.divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: var(--glow-accent);
+}
+
+/* 段落计数装饰 */
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+  position: relative;
+  counter-increment: wasp-section;
+}
+.section::before {
+  content: '0' counter(wasp-section);
+  position: absolute;
+  top: 2px;
+  left: -42px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: rgba(100, 200, 255, 0.25);
+  font-weight: 600;
 }
 
 /* ── 卡片 ───────────────────────────────────────────── */
