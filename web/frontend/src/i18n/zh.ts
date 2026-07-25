@@ -92,6 +92,9 @@ export interface I18nKeys {
   mp_fx: string
   mp_apply: string
   mp_updated: string
+  mp_region_asia: string
+  mp_region_eu: string
+  mp_region_am: string
 }
 
 const zh: I18nKeys = {
@@ -202,6 +205,9 @@ const zh: I18nKeys = {
   mp_fx: 'EUR/USD 汇率',
   mp_apply: '应用市场价格',
   mp_updated: '更新时间',
+  mp_region_asia: '亚太区',
+  mp_region_eu: '欧洲区',
+  mp_region_am: '美洲区',
 }
 
 export default zh

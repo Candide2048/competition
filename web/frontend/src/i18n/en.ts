@@ -121,6 +121,9 @@ const en: I18nKeys = {
   mp_fx: 'EUR/USD Rate',
   mp_apply: 'Apply Market Prices',
   mp_updated: 'Updated',
+  mp_region_asia: 'Asia-Pacific',
+  mp_region_eu: 'Europe',
+  mp_region_am: 'Americas',
 }
 
 export default en

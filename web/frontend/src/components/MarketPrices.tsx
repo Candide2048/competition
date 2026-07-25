@@ -125,7 +125,12 @@ export default function MarketPrices({ onApply }: {
         <>
           <div className="mp-region">
             <span className="mp-region-icon">🌐</span>
-            <span>{data.bunker_hub} / {data.carbon_market}</span>
+            <span>{data.detected_region === 'asia' ? t.mp_region_asia ?? '亚太区'
+              : data.detected_region === 'europe' ? t.mp_region_eu ?? '欧洲区'
+              : t.mp_region_am ?? '美洲区'}</span>
+            <span className="mp-region-detail">
+              ⛽ {data.bunker_hub} · 🏭 {data.carbon_market}
+            </span>
           </div>
 
           <div className="mp-body">
