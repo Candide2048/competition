@@ -3,6 +3,7 @@ import type { Options, ScenarioRequest, ShipMeta } from '../api'
 import { fmtInt } from '../lib/format'
 import { useI18n } from '../i18n'
 import { useTheme } from '../hooks/useTheme'
+import MarketPrices from './MarketPrices'
 
 type Override = { DWT: number; L: number; B: number; draft: number; C_B: number }
 
@@ -284,7 +285,14 @@ export default function Sidebar({
           </label>
         </div>
 
-        {/* ⑤ 经济性 */}
+        {/* ⑤ 实时市场数据 + 经济性 */}
+        <div className="group">
+          <MarketPrices
+            onApply={(fuel, co2) => patch({ fuel_price: fuel, co2_price: co2 })}
+          />
+        </div>
+
+        {/* ⑥ 经济性 */}
         <div className="group">
           <span className="group-title">{t.sb_econ}</span>
           <label className="field">

@@ -39,6 +39,7 @@ from core.owner_inputs import (  # noqa: E402
     VALID_SHIP_TYPES, VALID_SAIL_TYPES, VALID_FLETTNER_SPECS, VALID_FUEL_TYPES,
     HOURS_PER_YEAR,
 )
+from core.realtime_prices import get_market_prices  # noqa: E402
 import app.data_access as da  # noqa: E402
 from app.report import (  # noqa: E402
     generate_report, SAIL_LABELS, SHIP_LABELS, SEASON_LABELS,
@@ -136,6 +137,16 @@ class ScenarioRequest(BaseModel):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "records": int(len(DF)), "speeds_kn": GRID_SPEEDS}
+
+
+@app.get("/api/prices")
+def prices(timezone: str = "Asia/Shanghai"):
+    """实时市场价格：根据客户端时区自动匹配区域油价/碳价/汇率。
+
+    前端首屏拉取一次（或用户手动刷新），返回含数据来源 + 时间戳的完整价格快照。
+    客户端通过 Intl.DateTimeFormat().resolvedOptions().timeZone 获取时区传入。
+    """
+    return get_market_prices(timezone)
 
 
 @app.get("/api/options")

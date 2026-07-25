@@ -113,6 +113,14 @@ const en: I18nKeys = {
   matrix_loading: 'Loading benefit matrix…',
   matrix_err: (msg) => `Matrix load failed: ${msg}`,
   welcome: 'Adjust ship type, speed & other parameters in the left panel — all charts update in real time',
+  // Market Prices
+  mp_title: 'Live Market Data',
+  mp_refresh: 'Refresh',
+  mp_fuel: 'VLSFO Bunker',
+  mp_co2: 'Carbon Allowance',
+  mp_fx: 'EUR/USD Rate',
+  mp_apply: 'Apply Market Prices',
+  mp_updated: 'Updated',
 }
 
 export default en

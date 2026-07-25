@@ -84,6 +84,14 @@ export interface I18nKeys {
   matrix_err: (msg: string) => string
   // Welcome
   welcome: string
+  // Market Prices
+  mp_title: string
+  mp_refresh: string
+  mp_fuel: string
+  mp_co2: string
+  mp_fx: string
+  mp_apply: string
+  mp_updated: string
 }
 
 const zh: I18nKeys = {
@@ -186,6 +194,14 @@ const zh: I18nKeys = {
   matrix_err: (msg: string) => `矩阵加载失败：${msg}`,
   // Welcome
   welcome: '左侧面板可调节船型、航速等参数，所有图表实时联动',
+  // Market Prices
+  mp_title: '实时市场数据',
+  mp_refresh: '刷新行情',
+  mp_fuel: 'VLSFO 油价',
+  mp_co2: '碳排放配额',
+  mp_fx: 'EUR/USD 汇率',
+  mp_apply: '应用市场价格',
+  mp_updated: '更新时间',
 }
 
 export default zh
