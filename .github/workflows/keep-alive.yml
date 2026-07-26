@@ -1,0 +1,22 @@
+# 保活任务：每 10 分钟 ping 一次 Render 免费实例，防止 15 分钟无流量自动休眠
+# 注意：GitHub 定时任务在高峰期可能延迟几分钟，属正常现象；
+# 仓库超过 60 天无任何 commit 时 GitHub 会自动停用定时 workflow（会发邮件提醒，点一下重新启用即可）
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # 允许手动触发，方便验证
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping wasp-dashboard
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 --retry 2 --retry-delay 15 https://wasp-dashboard.onrender.com/)
+          echo "HTTP status: $code"
+          if [ "$code" -ge 500 ] || [ "$code" -eq 000 ]; then
+            echo "Service unreachable!" && exit 1
+          fi
