@@ -6,10 +6,14 @@ export default function SailCompare({
   data,
   loading,
   error,
+  selectedSail,
+  onSelect,
 }: {
   data: RecommendationResult | null
   loading: boolean
   error: string | null
+  selectedSail: string
+  onSelect: (sail: string) => void
 }) {
   const { t, locale } = useI18n()
   const L = (value: string) => t.labels[value] || value
@@ -41,10 +45,11 @@ export default function SailCompare({
           const recommended = candidate.sail === data.recommended_sail
           const bestAvailable = data.decision === 'do_not_install'
             && candidate.sail === data.best_candidate
+          const selected = candidate.sail === selectedSail
           return (
             <div
               key={candidate.sail}
-              className={`sail-card ${recommended ? 'best' : ''} ${bestAvailable ? 'best-available' : ''}`}
+              className={`sail-card ${recommended ? 'best' : ''} ${bestAvailable ? 'best-available' : ''} ${selected ? 'selected' : ''}`}
             >
               <div className="sail-card-head">
                 {L(candidate.label)}
@@ -65,6 +70,18 @@ export default function SailCompare({
                 <span className="sail-card-metric-label">{t.sail_npv20}</span>
                 <span className="sail-card-metric-value num">{fmtUsdCompact(candidate.npv_20y_usd)}</span>
               </div>
+              <div className="sail-card-metric">
+                <span className="sail-card-metric-label">{t.sail_annual}</span>
+                <span className="sail-card-metric-value num">{fmtUsdCompact(candidate.annual_savings_usd)}</span>
+              </div>
+              <button
+                type="button"
+                className="sail-detail-btn"
+                aria-pressed={selected}
+                onClick={() => onSelect(candidate.sail)}
+              >
+                {selected ? t.sail_detail_selected : t.sail_view_detail}
+              </button>
             </div>
           )
         })}

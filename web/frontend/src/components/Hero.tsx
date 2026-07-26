@@ -1,5 +1,5 @@
 import SplitText from './SplitText'
-import type { ScenarioResult, ShipOption, SailOption } from '../api'
+import type { RecommendationResult, ScenarioResult, ShipOption, SailOption } from '../api'
 import { fmtPayback, fmtUsdCompact } from '../lib/format'
 import { useI18n } from '../i18n'
 
@@ -8,47 +8,72 @@ export default function Hero({
   res,
   ship,
   sail,
+  recommendation,
+  recommendationLoading,
+  recommendationError,
 }: {
   res: ScenarioResult
   ship: ShipOption
   sail: SailOption
+  recommendation: RecommendationResult | null
+  recommendationLoading: boolean
+  recommendationError: string | null
 }) {
   const { t, locale } = useI18n()
   const L = (s: string) => t.labels[s] || s
-  const { cell, route_name, is_live, speed_used, n_sails } = res
-  const payback = cell.payback_years
-  const negativeEconomics = cell.npv_20y_usd < 0 || payback === null || payback > 20
-  const needsValidation = res.quality.guardrail_applied || !res.quality.within_benchmark
-  const decision = negativeEconomics
+  const { cell, route_name, speed_used } = res
+  const leadSail = recommendation?.recommended_sail || recommendation?.best_candidate
+  const lead = recommendation?.candidates.find((candidate) => candidate.sail === leadSail)
+  const leadNeedsValidation = Boolean(lead && (lead.guardrail_applied || !lead.within_benchmark))
+  const decision = recommendation?.decision === 'do_not_install'
     ? 'negative'
-    : payback > 10 || needsValidation
+    : lead && (lead.payback_years !== null && lead.payback_years > 10 || leadNeedsValidation)
       ? 'conditional'
       : 'positive'
-  const decisionLabel = decision === 'negative'
-    ? t.decision_state_negative
-    : decision === 'conditional'
-      ? t.decision_state_conditional
-      : t.decision_state_positive
+  const decisionLabel = recommendationLoading && !recommendation
+    ? t.rec_loading
+    : recommendationError && !recommendation
+      ? t.rec_error(recommendationError)
+      : decision === 'negative'
+        ? t.decision_state_negative
+        : decision === 'conditional'
+          ? t.decision_state_conditional
+          : t.decision_state_positive
 
   const reasons: string[] = []
-  if (cell.npv_20y_usd < 0) reasons.push(t.decision_npv_negative(fmtUsdCompact(cell.npv_20y_usd)))
-  if (payback === null || payback > 20) reasons.push(t.decision_payback_long(payback === null ? null : payback.toFixed(1)))
-  if (cell.cii_rating_baseline === cell.cii_rating_with_sail) {
-    reasons.push(t.decision_cii_same(cell.cii_rating_with_sail, cell.cii_improvement_pct.toFixed(1)))
+  if (recommendation?.decision === 'do_not_install' && lead) {
+    reasons.push(t.rec_no_install(L(lead.label), fmtUsdCompact(lead.npv_20y_usd)))
   }
-  if (res.quality.guardrail_applied) reasons.push(t.decision_guardrail)
-  else if (!res.quality.within_benchmark) reasons.push(t.decision_outside_benchmark)
-  if (reasons.length === 0) reasons.push(t.decision_positive_reason)
+  if (lead?.guardrail_applied) reasons.push(t.decision_guardrail)
+  else if (lead && !lead.within_benchmark) reasons.push(t.decision_outside_benchmark)
+  if (lead && lead.cii_rating_baseline === lead.cii_rating_with_sail) {
+    reasons.push(t.decision_cii_same(lead.cii_rating_with_sail, lead.cii_improvement_pct.toFixed(1)))
+  }
+  if (lead && reasons.length === 0) reasons.push(t.decision_positive_reason)
+  if (!lead) reasons.push(t.rec_basis)
 
-  const verdict = t.hero_verdict(
-    L(ship.label),
-    n_sails,
-    L(sail.label),
-    cell.saving_rate_pct.toFixed(2),
-    cell.cii_rating_baseline,
-    cell.cii_rating_with_sail,
-    fmtPayback(cell.payback_years, locale),
-  )
+  const verdict = lead && recommendation?.decision === 'install'
+    ? t.hero_rec_install(
+        L(ship.label),
+        lead.n_sails,
+        L(lead.label),
+        lead.saving_rate_pct.toFixed(2),
+        fmtPayback(lead.payback_years, locale),
+        fmtUsdCompact(lead.npv_20y_usd),
+      )
+    : lead
+      ? t.hero_rec_no_install(L(ship.label), L(lead.label))
+      : recommendationLoading
+        ? t.hero_rec_loading(L(ship.label))
+        : t.hero_verdict(
+            L(ship.label),
+            res.n_sails,
+            L(sail.label),
+            cell.saving_rate_pct.toFixed(2),
+            cell.cii_rating_baseline,
+            cell.cii_rating_with_sail,
+            fmtPayback(cell.payback_years, locale),
+          )
 
   return (
     <header className="hero section">
@@ -69,8 +94,11 @@ export default function Hero({
       <div className="hero-chips">
         <span className="chip">{L(route_name)}</span>
         <span className="chip">{speed_used.toFixed(0)} kn</span>
-        <span className={`chip ${is_live ? 'live' : ''}`}>
-          {is_live ? t.chip_live : t.chip_cache}
+        {recommendation && (
+          <span className="chip">{t.hero_compared(recommendation.candidates.length)}</span>
+        )}
+        <span className={`chip ${(lead?.is_live ?? res.is_live) ? 'live' : ''}`}>
+          {(lead?.is_live ?? res.is_live) ? t.chip_live : t.chip_cache}
         </span>
         <span className="chip">
           {t.quality_weather_basis(

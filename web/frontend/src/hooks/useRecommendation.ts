@@ -11,7 +11,21 @@ export function useRecommendation(req: ScenarioRequest | null, debounceMs = 150)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const key = req ? JSON.stringify(req) : null
+  const key = req ? JSON.stringify([
+    req.ship,
+    req.speed,
+    req.route,
+    req.season,
+    req.flettner_spec,
+    req.fuel_type,
+    req.fuel_price,
+    req.co2_price,
+    req.sea_ratio,
+    req.sfoc,
+    req.overrides,
+    req.locale,
+    req.cii_year,
+  ]) : null
 
   useEffect(() => {
     abortRef.current?.abort()

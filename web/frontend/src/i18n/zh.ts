@@ -4,6 +4,10 @@ export interface I18nKeys {
   brand_sub: string
   hero_eyebrow: string
   hero_verdict: (ship: string, n: number, sail: string, saving: string, ciiFrom: string, ciiTo: string, payback: string) => string
+  hero_rec_install: (ship: string, n: number, sail: string, saving: string, payback: string, npv: string) => string
+  hero_rec_no_install: (ship: string, sail: string) => string
+  hero_rec_loading: (ship: string) => string
+  hero_compared: (count: number) => string
   decision_state_positive: string
   decision_state_conditional: string
   decision_state_negative: string
@@ -19,6 +23,11 @@ export interface I18nKeys {
   chip_cache: string
   sec_kpi: string
   sec_kpi_title: string
+  sec_detail: string
+  sec_detail_title: string
+  detail_context: string
+  detail_units: string
+  detail_hint: string
   sec_cashflow: string
   sec_cashflow_title: string
   sec_cii: string
@@ -66,6 +75,8 @@ export interface I18nKeys {
   rec_basis: string
   rec_recommended: string
   rec_best_available: string
+  sail_view_detail: string
+  sail_detail_selected: string
   sb_ship: string
   sb_adv: string
   sb_override: string
@@ -122,6 +133,7 @@ export interface I18nKeys {
   mp_region_asia: string
   mp_region_eu: string
   mp_region_am: string
+  mp_region_me: string
   mp_display_timezone: string
 }
 
@@ -132,6 +144,12 @@ const zh: I18nKeys = {
   hero_eyebrow: 'Wind-Assisted Ship Propulsion · 效益决策',
   hero_verdict: (ship: string, n: number, sail: string, saving: string, ciiFrom: string, ciiTo: string, payback: string) =>
     `为 ${ship} 加装 ${n} 台${sail}，节油 ${saving}%，${ciiFrom === ciiTo ? `CII 维持 ${ciiTo}` : `CII ${ciiFrom}→${ciiTo}`}，回收 ${payback}。`,
+  hero_rec_install: (ship: string, n: number, sail: string, saving: string, payback: string, npv: string) =>
+    `综合全部兼容方案，建议为 ${ship} 安装 ${n} 台${sail}：节油 ${saving}%，回收 ${payback}，20 年净现值 ${npv}。`,
+  hero_rec_no_install: (ship: string, sail: string) =>
+    `${ship} 在当前假设下不建议安装风帆；相对最优候选为${sail}。`,
+  hero_rec_loading: (ship: string) => `正在为 ${ship} 比较全部兼容帆型并生成建议…`,
+  hero_compared: (count: number) => `已比较 ${count} 种兼容帆型`,
   decision_state_positive: '建议进入方案深化',
   decision_state_conditional: '有条件可行，需进一步验证',
   decision_state_negative: '当前经济假设下不建议投资',
@@ -148,6 +166,11 @@ const zh: I18nKeys = {
   // Section headers
   sec_kpi: '核心效益',
   sec_kpi_title: '投资回收与节能指标',
+  sec_detail: '详细场景',
+  sec_detail_title: '当前帆型的投资回收与节能指标',
+  detail_context: '当前查看的单帆型详情',
+  detail_units: '台',
+  detail_hint: '用于查看该帆型的现金流、CII 和实船基准；不会改变上方跨帆型推荐的排序规则。',
   sec_cashflow: '投资回报',
   sec_cashflow_title: '累计净现金流（含贴现）',
   sec_cii: 'IMO合规',
@@ -201,6 +224,8 @@ const zh: I18nKeys = {
   rec_basis: '全部候选保持船型、航线、航速、天气和经济参数一致，并采用各帆型默认配置成本。',
   rec_recommended: '推荐',
   rec_best_available: '相对最优',
+  sail_view_detail: '查看该帆型详情',
+  sail_detail_selected: '正在查看',
   // Sidebar
   sb_ship: '船型',
   sb_adv: '实船参数（高级，可选）',
@@ -208,8 +233,8 @@ const zh: I18nKeys = {
   sb_override_note: '（触发 live 物理重算）',
   sb_speed: '航速 (kn)',
   sb_speed_hint: (speeds: string) => `标准网格 ${speeds} kn 秒级取数，其余触发 live。`,
-  sb_sail_type: '风帆技术类型',
-  sb_sail_hint: (n: number) => `安装台数 ${n} 台（等面积归一化，公平对比）。`,
+  sb_sail_type: '单帆型详情',
+  sb_sail_hint: (n: number) => `查看 ${n} 台配置的详细结果；系统推荐仍会独立比较全部兼容帆型。`,
   sb_flettner_spec: 'Flettner 规格 (H×D)',
   sb_route: '航线',
   sb_season: '季节',
@@ -256,7 +281,7 @@ const zh: I18nKeys = {
   // Welcome
   welcome: '左侧面板可调节船型、航速等参数，所有图表实时联动',
   // Market Prices
-  mp_title: '最新市场参考',
+  mp_title: '燃油报价中心',
   mp_refresh: '刷新行情',
   mp_fuel: 'VLSFO 油价',
   mp_co2: '碳排放配额',
@@ -266,6 +291,7 @@ const zh: I18nKeys = {
   mp_region_asia: '亚太区',
   mp_region_eu: '欧洲区',
   mp_region_am: '美洲区',
+  mp_region_me: '中东区',
   mp_display_timezone: '显示时区',
 }
 

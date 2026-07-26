@@ -106,6 +106,14 @@ export default function MarketPrices({ onApply }: {
 
   if (error && !data) return null  // 静默失败，不影响主流程
 
+  const regionLabel = data?.bunker_hub === 'Fujairah'
+    ? t.mp_region_me
+    : data?.detected_region === 'asia'
+      ? t.mp_region_asia
+      : data?.detected_region === 'europe'
+        ? t.mp_region_eu
+        : t.mp_region_am
+
   return (
     <div className="market-prices">
       <div className="mp-header">
@@ -122,9 +130,7 @@ export default function MarketPrices({ onApply }: {
         <>
           <div className="mp-region">
             <span className="mp-region-icon">🌐</span>
-            <span>{data.detected_region === 'asia' ? t.mp_region_asia ?? '亚太区'
-              : data.detected_region === 'europe' ? t.mp_region_eu ?? '欧洲区'
-              : t.mp_region_am ?? '美洲区'}</span>
+            <span>{regionLabel}</span>
             <span className="mp-region-detail">
               ⛽ {data.bunker_hub} · 🏭 {data.carbon_market}
             </span>

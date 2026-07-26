@@ -110,6 +110,17 @@ export default function App() {
 
   const ship = options.ships.find((s) => s.value === req.ship)!
   const sail = options.sails.find((s) => s.value === req.sail)!
+  const selectDetailedSail = (value: string) => {
+    const selected = options.sails.find((candidate) => candidate.value === value)
+    if (!selected) return
+    const unitCost = value === 'flettner'
+      ? options.flettner_unit_costs[req.flettner_spec]
+      : selected.default_unit_cost
+    patch({ sail: value, unit_cost: unitCost })
+    requestAnimationFrame(() => {
+      document.getElementById('detail-analysis')?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }
 
   return (
     <div className="app">
@@ -131,13 +142,43 @@ export default function App() {
 
         {data && (
           <>
-            <Hero res={data} ship={ship} sail={sail} />
+            <Hero
+              res={data}
+              ship={ship}
+              sail={sail}
+              recommendation={recommendation}
+              recommendationLoading={recommendationLoading}
+              recommendationError={recommendationError}
+            />
 
-            {/* 核心答案区：回收期 + 年净节省 + 节油率 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">{t.sec_kpi}</span>
-                <h2 className="section-title">{t.sec_kpi_title}</h2>
+                <span className="eyebrow">{t.sec_sail}</span>
+                <h2 className="section-title">{t.sec_sail_title}</h2>
+              </div>
+              <SailCompare
+                data={recommendation}
+                loading={recommendationLoading}
+                error={recommendationError}
+                selectedSail={req.sail}
+                onSelect={selectDetailedSail}
+              />
+            </Reveal>
+
+            <hr className="divider" />
+
+            {/* 用户选中的单帆型详细场景 */}
+            <Reveal>
+              <div id="detail-analysis" className="detail-context">
+                <div>
+                  <span>{t.detail_context}</span>
+                  <strong>{L(sail.label)} · {data.n_sails} {t.detail_units}</strong>
+                </div>
+                <p>{t.detail_hint}</p>
+              </div>
+              <div className="section-header">
+                <span className="eyebrow">{t.sec_detail}</span>
+                <h2 className="section-title">{t.sec_detail_title}</h2>
               </div>
               {!data.speed_exact && (
                 <div className="note">
@@ -183,21 +224,6 @@ export default function App() {
                   improvementPct={data.cell.cii_improvement_pct}
                 />
               </div>
-            </Reveal>
-
-            <hr className="divider" />
-
-            {/* 三帆型 PK */}
-            <Reveal>
-              <div className="section-header">
-                <span className="eyebrow">{t.sec_sail}</span>
-                <h2 className="section-title">{t.sec_sail_title}</h2>
-              </div>
-              <SailCompare
-                data={recommendation}
-                loading={recommendationLoading}
-                error={recommendationError}
-              />
             </Reveal>
 
             <hr className="divider" />
