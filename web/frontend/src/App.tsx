@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { getOptions, type Options, type ScenarioRequest } from './api'
 import { useScenario } from './hooks/useScenario'
+import { useRecommendation } from './hooks/useRecommendation'
 import { useReveal } from './hooks/useReveal'
 import { useI18n } from './i18n'
 import Background from './components/Background'
@@ -75,6 +76,12 @@ export default function App() {
   }, [locale])
 
   const { data, loading, error } = useScenario(req)
+  const recommendationReq = data && !loading ? req : null
+  const {
+    data: recommendation,
+    loading: recommendationLoading,
+    error: recommendationError,
+  } = useRecommendation(recommendationReq)
 
   if (bootError) {
     return (
@@ -187,15 +194,9 @@ export default function App() {
                 <h2 className="section-title">{t.sec_sail_title}</h2>
               </div>
               <SailCompare
-                ship={req.ship}
-                route={req.route}
-                season={req.season}
-                fuelPrice={req.fuel_price}
-                co2Price={req.co2_price}
-                seaRatio={req.sea_ratio}
-                fuelType={req.fuel_type}
-                ciiYear={req.cii_year}
-                currentSpeed={req.speed}
+                data={recommendation}
+                loading={recommendationLoading}
+                error={recommendationError}
               />
             </Reveal>
 
@@ -261,7 +262,7 @@ export default function App() {
                 <span className="eyebrow">{t.sec_report}</span>
                 <h2 className="section-title">{t.sec_report_title}</h2>
               </div>
-              <ReportPanel md={data.report_md} />
+              <ReportPanel md={recommendation?.report_md ?? data.report_md} />
             </Reveal>
           </>
         )}

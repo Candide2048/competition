@@ -895,6 +895,31 @@ input[type='range']::-moz-range-thumb {
 }
 
 /* ══════════════ Sail Compare ══════════════ */
+.sail-recommendation {
+  display: grid;
+  gap: 14px;
+}
+.recommendation-summary,
+.recommendation-message {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--pos);
+  background: rgba(0, 255, 136, 0.05);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.recommendation-summary.do_not_install,
+.recommendation-error {
+  border-left-color: var(--neg);
+  background: rgba(255, 68, 102, 0.05);
+}
+.recommendation-summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
 .sail-compare {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -919,15 +944,28 @@ input[type='range']::-moz-range-thumb {
   border-color: var(--pos);
   box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
 }
+.sail-card.best-available {
+  border-color: var(--warn);
+}
 .sail-card-head {
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
 }
-.sail-card.best .sail-card-head::after {
-  content: ' ★';
+.sail-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 255, 136, 0.1);
   color: var(--pos);
+  font-size: 10px;
+  vertical-align: middle;
+}
+.sail-tag.muted {
+  background: rgba(255, 170, 0, 0.1);
+  color: var(--warn);
 }
 .sail-card-metric {
   display: flex;
@@ -1103,28 +1141,6 @@ input[type='range']::-moz-range-thumb {
   font-size: 0.65rem;
   opacity: 0.7;
   margin-left: auto;
-}
-.mp-hub-select {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 5px 8px;
-  margin: 8px 0 10px;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-dim);
-  font-size: 0.74rem;
-}
-.mp-hub-select select {
-  min-width: 118px;
-  padding: 5px 7px;
-  font-size: 0.74rem;
-}
-.mp-hub-select small {
-  grid-column: 1 / -1;
-  color: var(--muted);
-  font-size: 0.66rem;
 }
 .mp-body {
   display: flex;

@@ -21,8 +21,6 @@ interface MarketPricesData {
   detected_timezone: string
   bunker_hub: string
   carbon_market: string
-  selection_mode: 'explicit' | 'timezone_suggestion'
-  available_bunker_hubs: BunkerHub[]
   fetched_at: string
   values: {
     fuel_price_usd_per_kg: number
@@ -30,9 +28,6 @@ interface MarketPricesData {
     eur_to_usd: number
   }
 }
-
-type BunkerHub = 'Singapore' | 'Fujairah' | 'Rotterdam' | 'Houston'
-const BUNKER_HUBS: BunkerHub[] = ['Singapore', 'Fujairah', 'Rotterdam', 'Houston']
 
 function FreshBadge({ freshness }: { freshness: string }) {
   const cls = freshness === 'live' || freshness === 'delayed'
@@ -77,14 +72,12 @@ function PriceRow({ label, point, displayValue }: { label: string; point: PriceP
   )
 }
 
-export default function MarketPrices({ onApply, recommendedHub }: {
+export default function MarketPrices({ onApply }: {
   onApply: (fuel: number, co2: number) => void
-  recommendedHub: BunkerHub
 }) {
   const [data, setData] = useState<MarketPricesData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hub, setHub] = useState<BunkerHub>(recommendedHub)
   const { t } = useI18n()
 
   const fetchPrices = useCallback(async () => {
@@ -92,7 +85,7 @@ export default function MarketPrices({ onApply, recommendedHub }: {
     setError(null)
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai'
-      const query = new URLSearchParams({ timezone: tz, bunker_hub: hub })
+      const query = new URLSearchParams({ timezone: tz })
       const r = await fetch(`/api/prices?${query.toString()}`)
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const json = await r.json() as MarketPricesData
@@ -102,9 +95,8 @@ export default function MarketPrices({ onApply, recommendedHub }: {
     } finally {
       setLoading(false)
     }
-  }, [hub])
+  }, [])
 
-  useEffect(() => { setHub(recommendedHub) }, [recommendedHub])
   useEffect(() => { fetchPrices() }, [fetchPrices])
 
   const handleApply = () => {
@@ -137,16 +129,6 @@ export default function MarketPrices({ onApply, recommendedHub }: {
               ⛽ {data.bunker_hub} · 🏭 {data.carbon_market}
             </span>
           </div>
-
-          <label className="mp-hub-select">
-            <span>{t.mp_bunker_hub}</span>
-            <select value={hub} onChange={(event) => setHub(event.target.value as BunkerHub)}>
-              {(data.available_bunker_hubs || BUNKER_HUBS).map((item) => (
-                <option key={item} value={item}>{item}</option>
-              ))}
-            </select>
-            <small>{hub === recommendedHub ? t.mp_route_recommended : t.mp_user_selected}</small>
-          </label>
 
           <div className="mp-body">
             <PriceRow

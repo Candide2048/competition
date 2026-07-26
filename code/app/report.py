@@ -139,6 +139,108 @@ def build_sensitivity_table(annual_fuel_saved_t: float,
     return header + "\n" + "\n".join(rows)
 
 
+def generate_recommendation_report(*, ship: str, route_name: str, season: str,
+                                   speed: float, candidates: list[dict],
+                                   decision: str,
+                                   recommended_sail: str | None,
+                                   best_candidate: str | None,
+                                   locale: str = "zh") -> str:
+    """Generate a cross-sail recommendation report from structured results."""
+    en = locale == "en"
+    ship_label = (SHIP_LABELS_EN if en else SHIP_LABELS).get(ship, ship)
+    season_label = (SEASON_LABELS_EN if en else SEASON_LABELS).get(season, season)
+    labels = SAIL_LABELS_EN if en else SAIL_LABELS
+    by_sail = {candidate["sail"]: candidate for candidate in candidates}
+    chosen_key = recommended_sail or best_candidate
+    chosen = by_sail.get(chosen_key) if chosen_key else None
+
+    if en:
+        if decision == "install" and chosen:
+            conclusion = (
+                f"Recommend prioritising **{labels.get(chosen_key, chosen_key)}**: "
+                f"{chosen['saving_rate_pct']:.2f}% fuel saving, "
+                f"{_fmt_payback(chosen['payback_years'], 'en')} payback, and "
+                f"{_fmt_usd(chosen['npv_20y_usd'])} 20-year NPV.")
+        elif chosen:
+            conclusion = (
+                "**Do not install any candidate under the current assumptions.** "
+                f"{labels.get(chosen_key, chosen_key)} is the strongest comparison "
+                f"case, but its 20-year NPV is {_fmt_usd(chosen['npv_20y_usd'])}.")
+        else:
+            conclusion = "No compatible sail candidate is available for this vessel."
+        header = "| Sail | Fuel saving | Annual net saving | Payback | 20-year NPV | CII |"
+        align = "|---|---:|---:|---:|---:|---|"
+        rows = [
+            f"| {labels.get(c['sail'], c['sail'])} | {c['saving_rate_pct']:.2f}% | "
+            f"{_fmt_usd(c['annual_savings_usd'])} | {_fmt_payback(c['payback_years'], 'en')} | "
+            f"{_fmt_usd(c['npv_20y_usd'])} | {c['cii_rating_baseline']}→{c['cii_rating_with_sail']} |"
+            for c in candidates
+        ]
+        return f"""# Wind-Assisted Propulsion Recommendation Report
+
+> Scenario: {ship_label} · {route_name} · {season_label} · {speed:.1f} kn
+
+## Recommendation
+
+{conclusion}
+
+## Candidate comparison
+
+{header}
+{align}
+{chr(10).join(rows)}
+
+## Decision rule and scope
+
+- A sail is recommended only when its 20-year NPV is positive and payback is within 20 years.
+- Viable candidates are ranked by 20-year NPV, then by shorter payback.
+- Each sail uses its configured default unit cost; all other user inputs are held constant.
+- This is a screening recommendation based on representative weather, not an investment guarantee.
+"""
+
+    if decision == "install" and chosen:
+        conclusion = (
+            f"建议优先深化 **{labels.get(chosen_key, chosen_key)}**：预计节油率 "
+            f"{chosen['saving_rate_pct']:.2f}%，回收期 {_fmt_payback(chosen['payback_years'], 'zh')}，"
+            f"20 年净现值 {_fmt_usd(chosen['npv_20y_usd'])}。")
+    elif chosen:
+        conclusion = (
+            "**当前参数下不建议安装任何候选帆型。** "
+            f"{labels.get(chosen_key, chosen_key)} 是相对最优候选，但其 20 年净现值仍为 "
+            f"{_fmt_usd(chosen['npv_20y_usd'])}。")
+    else:
+        conclusion = "当前船型没有可用的兼容帆型。"
+    header = "| 帆型 | 节油率 | 年净节省 | 回收期 | 20 年净现值 | CII |"
+    align = "|---|---:|---:|---:|---:|---|"
+    rows = [
+        f"| {labels.get(c['sail'], c['sail'])} | {c['saving_rate_pct']:.2f}% | "
+        f"{_fmt_usd(c['annual_savings_usd'])} | {_fmt_payback(c['payback_years'], 'zh')} | "
+        f"{_fmt_usd(c['npv_20y_usd'])} | {c['cii_rating_baseline']}→{c['cii_rating_with_sail']} |"
+        for c in candidates
+    ]
+    return f"""# 风帆辅助推进方案推荐报告
+
+> 场景：{ship_label} · {route_name} · {season_label} · {speed:.1f} kn
+
+## 一、推荐结论
+
+{conclusion}
+
+## 二、候选方案数据对比
+
+{header}
+{align}
+{chr(10).join(rows)}
+
+## 三、推荐规则与边界
+
+- 只有 20 年净现值为正、且能在 20 年内回本的帆型才进入推荐范围。
+- 可行候选优先按 20 年净现值排序，净现值相同时选择回收期更短者。
+- 各帆型采用项目配置的默认单台成本，其余用户参数保持一致。
+- 这是基于代表性天气的前期筛选建议，不构成投资或实船性能保证。
+"""
+
+
 def generate_report(*, ship: str, sail: str, route: str, route_name: str,
                     season: str, speed_used: float, speed_exact: bool,
                     physics: dict, cell: dict,

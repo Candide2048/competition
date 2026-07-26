@@ -67,8 +67,6 @@ def test_options_complete(client):
     for r in o["routes"]:
         assert r["label"]
         assert isinstance(r["waypoints"], list) and len(r["waypoints"]) >= 2
-        assert r["recommended_bunker_hub"] in {
-            "Singapore", "Fujairah", "Rotterdam", "Houston"}
     # 季节 / 航速集 / 燃料 / 区间 / 默认
     assert [s["value"] for s in o["seasons"]] == list(api.SEASONS_META)
     assert o["speeds_kn"] == api.GRID_SPEEDS
@@ -88,11 +86,6 @@ def test_options_flettner_costs(client):
         assert spec in o["flettner_unit_costs"]
         assert o["flettner_unit_costs"][spec] == da.resolve_unit_cost(
             "flettner", spec)
-
-
-def test_prices_rejects_unknown_explicit_market(client):
-    response = client.get("/api/prices", params={"bunker_hub": "Unknown"})
-    assert response.status_code == 422
 
 
 # ═══════════════════════════════════════════════════════════
@@ -283,6 +276,65 @@ def test_cashflow_year_20_matches_backend_npv(client):
     assert body["quality"]["weather_years"] == [2025]
     assert body["quality"]["departure_samples_per_season"] == 1
     assert body["quality"]["uncertainty_interval_available"] is False
+
+
+def test_recommendation_compares_exact_compatible_scenarios(client):
+    response = client.post("/api/recommendation", json=_BASE_REQ)
+    assert response.status_code == 200
+    body = response.json()
+
+    expected_sails = [
+        sail for sail in api.SAIL_TYPES
+        if api.da.get_compatibility(_BASE_REQ["ship"], sail) > 0
+    ]
+    assert [candidate["sail"] for candidate in body["candidates"]] == expected_sails
+    assert body["criteria"] == {
+        "primary": "npv_20y_usd",
+        "secondary": "payback_years",
+        "investment_horizon_years": 20,
+        "cost_basis": "default_by_sail",
+    }
+
+    for candidate in body["candidates"]:
+        req = dict(_BASE_REQ, sail=candidate["sail"], unit_cost=None)
+        scenario_body = client.post("/api/scenario", json=req).json()
+        assert candidate["saving_rate_pct"] == scenario_body["cell"]["saving_rate_pct"]
+        assert candidate["payback_years"] == scenario_body["cell"]["payback_years"]
+        assert candidate["npv_20y_usd"] == scenario_body["cell"]["npv_20y_usd"]
+        assert candidate["unit_cost_used"] == scenario_body["unit_cost_used"]
+
+    viable = [
+        candidate for candidate in body["candidates"]
+        if candidate["npv_20y_usd"] > 0
+        and candidate["payback_years"] is not None
+        and candidate["payback_years"] <= 20
+    ]
+    if viable:
+        expected = max(
+            viable,
+            key=lambda candidate: (
+                candidate["npv_20y_usd"], -candidate["payback_years"]),
+        )
+        assert body["decision"] == "install"
+        assert body["recommended_sail"] == expected["sail"]
+    else:
+        assert body["decision"] == "do_not_install"
+        assert body["recommended_sail"] is None
+    assert "风帆辅助推进方案推荐报告" in body["report_md"]
+
+
+def test_recommendation_does_not_depend_on_selected_sail_cost(client):
+    first = client.post(
+        "/api/recommendation",
+        json=dict(_BASE_REQ, sail="flettner", unit_cost=100_000),
+    ).json()
+    second = client.post(
+        "/api/recommendation",
+        json=dict(_BASE_REQ, sail="rigid_wing", unit_cost=9_000_000),
+    ).json()
+    assert first["decision"] == second["decision"]
+    assert first["recommended_sail"] == second["recommended_sail"]
+    assert first["candidates"] == second["candidates"]
 
 
 def test_nondefault_flettner_spec_requires_live(client, monkeypatch):

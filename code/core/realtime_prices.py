@@ -8,7 +8,7 @@
 
 设计原则:
   - 零 API Key 依赖（全部使用免费公开端点）
-  - 时区只用于给出初始市场建议；业务市场可由航线或用户显式选择
+  - 时区 → 地区 → 港口/碳市场 自动映射
   - TTL 缓存（默认 30 分钟），避免重复请求
   - 优雅降级：任何 API 失败均回退到 config 默认值，并标注数据来源为 "static"
   - 每条数据附带 source / timestamp / freshness 元信息
@@ -62,7 +62,6 @@ class MarketPrices:
     detected_timezone: str     # 原始时区
     bunker_hub: str            # 对应加油港
     carbon_market: str         # 对应碳市场
-    selection_mode: str        # "explicit" | "timezone_suggestion"
     fetched_at: str            # 本次获取时间 ISO
 
 
@@ -112,15 +111,6 @@ BUNKER_PREMIUM_USD_PER_T = {
     "Rotterdam": 100.0,   # 欧洲枢纽
     "Houston": 90.0,      # 美洲
     "Fujairah": 110.0,    # 中东
-}
-
-# 显式市场选择使用的稳定白名单。地区仅用于前端标签；碳市场仍按国际
-# 航运适用范围给出参考，不由浏览器所在地决定。
-BUNKER_HUB_PROFILES = {
-    "Singapore": ("asia", "EU ETS (IMO)"),
-    "Fujairah": ("asia", "EU ETS (IMO)"),
-    "Rotterdam": ("europe", "EU ETS"),
-    "Houston": ("americas", "EU ETS (IMO)"),
 }
 
 # 各碳市场参考价（当 API 不可用时的 fallback）
@@ -414,38 +404,23 @@ def resolve_region(timezone_str: str) -> tuple[str, str, str]:
     return ("asia", "Singapore", "EU ETS (IMO)")
 
 
-def resolve_market(timezone_str: str, bunker_hub: Optional[str] = None
-                   ) -> tuple[str, str, str, str]:
-    """Resolve display region and business market without conflating them."""
-    suggested_region, suggested_hub, suggested_carbon = resolve_region(timezone_str)
-    if bunker_hub is None:
-        return (suggested_region, suggested_hub, suggested_carbon,
-                "timezone_suggestion")
-    if bunker_hub not in BUNKER_HUB_PROFILES:
-        raise ValueError(f"Unsupported bunker hub: {bunker_hub}")
-    region, carbon_market = BUNKER_HUB_PROFILES[bunker_hub]
-    return region, bunker_hub, carbon_market, "explicit"
-
-
-def get_market_prices(timezone_str: str = "Asia/Shanghai",
-                      bunker_hub: Optional[str] = None) -> dict:
+def get_market_prices(timezone_str: str = "Asia/Shanghai") -> dict:
     """获取完整市场价格快照（供 /api/prices 端点调用）
 
     Args:
-        timezone_str: 浏览器端检测的 IANA 时区字符串，仅用于显示和初始建议。
-        bunker_hub: 航线或用户显式选择的加油港；为空时才使用时区建议。
+        timezone_str: 浏览器端检测的 IANA 时区字符串
+                      (e.g., "Asia/Shanghai", "Europe/London")
 
     Returns:
         dict: 可直接 JSON 序列化的完整价格数据
     """
-    region, resolved_hub, carbon_market, selection_mode = resolve_market(
-        timezone_str, bunker_hub)
+    region, bunker_hub, carbon_market = resolve_region(timezone_str)
 
     # 1. 汇率（最可靠，优先获取）
     eur_usd = fetch_eur_usd()
 
     # 2. 燃油价格
-    fuel = fetch_fuel_price(resolved_hub)
+    fuel = fetch_fuel_price(bunker_hub)
 
     # 3. 碳价
     co2 = fetch_carbon_price(carbon_market, eur_usd.value)
@@ -458,10 +433,8 @@ def get_market_prices(timezone_str: str = "Asia/Shanghai",
         "eur_to_usd": _point_to_dict(eur_usd),
         "detected_region": region,
         "detected_timezone": timezone_str,
-        "bunker_hub": resolved_hub,
+        "bunker_hub": bunker_hub,
         "carbon_market": carbon_market,
-        "selection_mode": selection_mode,
-        "available_bunker_hubs": list(BUNKER_HUB_PROFILES),
         "fetched_at": now_iso,
         # 前端直接可用的标量值（与现有 slider 同单位）
         "values": {

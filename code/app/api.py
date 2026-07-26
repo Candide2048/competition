@@ -14,6 +14,7 @@
     GET  /api/health    健康检查
     GET  /api/options   一次性返回全部下拉/滑杆选项与默认值
     POST /api/scenario  单场景：复刻 dashboard live/grid 判定 → postprocess → 报告
+    POST /api/recommendation  同一组用户参数下比较兼容帆型并生成推荐报告
     GET  /api/matrix    效益矩阵：固定船型/航线/季节，遍历 帆型 × 网格航速
 
 运行:
@@ -46,7 +47,8 @@ from core.owner_inputs import (  # noqa: E402
 from core.realtime_prices import get_market_prices  # noqa: E402
 import app.data_access as da  # noqa: E402
 from app.report import (  # noqa: E402
-    generate_report, SAIL_LABELS, SHIP_LABELS, SEASON_LABELS,
+    generate_report, generate_recommendation_report,
+    SAIL_LABELS, SHIP_LABELS, SEASON_LABELS,
 )
 from analytics.cii import DEFAULT_CII_YEAR  # noqa: E402
 from analytics.economics import discounted_cashflow_series  # noqa: E402
@@ -60,15 +62,6 @@ SAIL_BENCH_RANGE = {
     "flettner": (6.0, 8.2, "Norsepower Estraden 6.1% / Pelican 8.2%"),
     "rigid_wing": (7.0, 14.0, "Oceanbird 7-10% / Pyxis Ocean ~14% (DNV)"),
     "suction_wing": (5.5, 8.0, "bound4blue Pacific Sentinel ~8%"),
-}
-
-# 航线起点/主要补给区域对应的默认参考港。该值只是业务建议，前端允许覆盖。
-ROUTE_BUNKER_HUB = {
-    "middle_east_china": "Fujairah",
-    "arabian_sea": "Fujairah",
-    "bay_of_bengal": "Singapore",
-    "south_china_sea": "Singapore",
-    "indian_ocean_monsoon": "Fujairah",
 }
 
 
@@ -173,18 +166,13 @@ def health():
 
 
 @app.get("/api/prices")
-def prices(
-    timezone: str = Query("Asia/Shanghai", min_length=1, max_length=64),
-    bunker_hub: Optional[Literal[
-        "Singapore", "Fujairah", "Rotterdam", "Houston"
-    ]] = None,
-):
-    """市场参考价格：时区负责显示，业务市场可显式选择。
+def prices(timezone: str = Query("Asia/Shanghai", min_length=1, max_length=64)):
+    """根据浏览器时区自动匹配区域油价、碳价和汇率。
 
-    未指定 ``bunker_hub`` 时保留基于时区的初始建议以兼容旧客户端；新版前端
-    使用航线推荐港并允许用户覆盖。
+    客户端通过 ``Intl.DateTimeFormat().resolvedOptions().timeZone`` 获取
+    IANA 时区并传入；响应同时返回实际采用的报价中心和显示时区。
     """
-    return get_market_prices(timezone, bunker_hub)
+    return get_market_prices(timezone)
 
 
 @app.get("/api/options")
@@ -213,7 +201,6 @@ def options():
         "value": r,
         "label": ROUTES_META[r]["name"],
         "waypoints": _to_jsonable(ROUTES_META[r]["waypoints"]),
-        "recommended_bunker_hub": ROUTE_BUNKER_HUB.get(r, "Singapore"),
     } for r in ROUTES_META]
 
     season_options = [{
@@ -382,6 +369,95 @@ def scenario(req: ScenarioRequest):
             "uncertainty_interval_available": False,
             "cii_year": req.cii_year,
         },
+        "report_md": report_md,
+    }
+
+
+@app.post("/api/recommendation")
+def recommendation(req: ScenarioRequest):
+    """Compare every compatible sail using the exact same owner inputs.
+
+    ``req.sail`` and ``req.unit_cost`` describe the currently inspected scenario
+    and are intentionally ignored for cross-sail ranking. Each candidate uses
+    its configured default unit cost so unlike technologies are compared on a
+    consistent, auditable basis.
+    """
+    _validate_scenario(req)
+    candidates = []
+    for sail in SAIL_TYPES:
+        if da.get_compatibility(req.ship, sail) <= 0:
+            continue
+        candidate_req = req.model_copy(update={"sail": sail, "unit_cost": None})
+        result = scenario(candidate_req)
+        cell = result["cell"]
+        candidates.append({
+            "sail": sail,
+            "label": SAIL_LABELS.get(sail, sail),
+            "n_sails": result["n_sails"],
+            "saving_rate_pct": float(cell["saving_rate_pct"]),
+            "annual_savings_usd": float(cell["annual_savings_usd"]),
+            "initial_cost_usd": float(cell["initial_cost_usd"]),
+            "payback_years": cell["payback_years"],
+            "npv_10y_usd": float(cell["npv_10y_usd"]),
+            "npv_20y_usd": float(cell["npv_20y_usd"]),
+            "cii_rating_baseline": cell["cii_rating_baseline"],
+            "cii_rating_with_sail": cell["cii_rating_with_sail"],
+            "cii_improvement_pct": float(cell["cii_improvement_pct"]),
+            "compatibility": float(cell["compatibility"]),
+            "within_benchmark": bool(result["quality"]["within_benchmark"]),
+            "guardrail_applied": bool(result["quality"]["guardrail_applied"]),
+            "is_live": bool(result["is_live"]),
+            "unit_cost_used": float(result["unit_cost_used"]),
+        })
+
+    if not candidates:
+        raise HTTPException(422, "当前船型没有兼容的帆型候选")
+
+    viable = [
+        candidate for candidate in candidates
+        if candidate["npv_20y_usd"] > 0
+        and candidate["payback_years"] is not None
+        and candidate["payback_years"] <= 20
+    ]
+    recommended = max(
+        viable,
+        key=lambda candidate: (
+            candidate["npv_20y_usd"], -candidate["payback_years"]),
+        default=None,
+    )
+    best_candidate = max(
+        candidates,
+        key=lambda candidate: (
+            candidate["npv_20y_usd"],
+            -(candidate["payback_years"]
+              if candidate["payback_years"] is not None else float("inf"))),
+    )
+    decision = "install" if recommended is not None else "do_not_install"
+    recommended_sail = recommended["sail"] if recommended else None
+
+    report_md = generate_recommendation_report(
+        ship=req.ship,
+        route_name=ROUTES_META[req.route]["name"],
+        season=req.season,
+        speed=float(req.speed),
+        candidates=candidates,
+        decision=decision,
+        recommended_sail=recommended_sail,
+        best_candidate=best_candidate["sail"],
+        locale=req.locale,
+    )
+
+    return {
+        "decision": decision,
+        "recommended_sail": recommended_sail,
+        "best_candidate": best_candidate["sail"],
+        "criteria": {
+            "primary": "npv_20y_usd",
+            "secondary": "payback_years",
+            "investment_horizon_years": 20,
+            "cost_basis": "default_by_sail",
+        },
+        "candidates": _to_jsonable(candidates),
         "report_md": report_md,
     }
 

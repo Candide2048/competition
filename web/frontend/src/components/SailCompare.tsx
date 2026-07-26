@@ -1,100 +1,74 @@
-import { useEffect, useState } from 'react'
-import { getMatrix, type MatrixResult } from '../api'
-import { fmtInt } from '../lib/format'
+import type { RecommendationResult } from '../api'
+import { fmtPayback, fmtUsdCompact } from '../lib/format'
 import { useI18n } from '../i18n'
 
-/**
- * 三帆型横向 PK —— 同条件下比较回收期/节油率/年净节省。
- * 数据源：/api/matrix 取三帆型在当前航速对应的网格速度列。
- */
 export default function SailCompare({
-  ship,
-  route,
-  season,
-  fuelPrice,
-  co2Price,
-  seaRatio,
-  fuelType,
-  ciiYear,
-  currentSpeed,
+  data,
+  loading,
+  error,
 }: {
-  ship: string
-  route: string
-  season: string
-  fuelPrice: number
-  co2Price: number
-  seaRatio: number
-  fuelType: string
-  ciiYear: number
-  currentSpeed: number
+  data: RecommendationResult | null
+  loading: boolean
+  error: string | null
 }) {
-  const [data, setData] = useState<MatrixResult | null>(null)
-  const { t } = useI18n()
-  const L = (s: string) => t.labels[s] || s
+  const { t, locale } = useI18n()
+  const L = (value: string) => t.labels[value] || value
 
-  useEffect(() => {
-    let alive = true
-    getMatrix({
-      ship,
-      route,
-      season,
-      fuel_price: fuelPrice,
-      co2_price: co2Price,
-      sea_ratio: seaRatio,
-      fuel_type: fuelType,
-      cii_year: ciiYear,
-    })
-      .then((r) => { if (alive) setData(r) })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [ship, route, season, fuelPrice, co2Price, seaRatio, fuelType, ciiYear])
-
+  if (loading) return <div className="recommendation-message">{t.rec_loading}</div>
+  if (error) return <div className="recommendation-message recommendation-error">{t.rec_error(error)}</div>
   if (!data) return null
 
-  // Find the column index closest to currentSpeed
-  const speedIdx = data.speeds.reduce(
-    (best, sp, i) => (Math.abs(sp - currentSpeed) < Math.abs(data.speeds[best] - currentSpeed) ? i : best),
-    0,
-  )
-
-  // Build comparison data for each sail type
-  const sails = data.sail_labels.map((label, ri) => ({
-    label,
-    saving: data.saving_rate_pct[ri][speedIdx],
-    annual: data.annual_savings_usd[ri][speedIdx],
-    payback: data.payback_years[ri][speedIdx],
-  }))
-
-  // Determine "best" = shortest finite payback
-  const validPaybacks = sails
-    .map((s, i) => ({ idx: i, pb: s.payback }))
-    .filter((x) => x.pb !== null && Number.isFinite(x.pb))
-  const bestIdx = validPaybacks.length > 0
-    ? validPaybacks.reduce((a, b) => (a.pb! < b.pb! ? a : b)).idx
-    : -1
-
+  const leadSail = data.recommended_sail || data.best_candidate
+  const lead = data.candidates.find((candidate) => candidate.sail === leadSail)
+  const conclusion = data.decision === 'install' && lead
+    ? t.rec_install(
+        L(lead.label),
+        fmtPayback(lead.payback_years, locale),
+        fmtUsdCompact(lead.npv_20y_usd),
+      )
+    : lead
+      ? t.rec_no_install(L(lead.label), fmtUsdCompact(lead.npv_20y_usd))
+      : t.rec_no_candidate
 
   return (
-    <div className="sail-compare">
-      {sails.map((s, i) => (
-        <div key={s.label} className={`sail-card ${i === bestIdx ? 'best' : ''}`}>
-          <div className="sail-card-head">{L(s.label)}</div>
-          <div className="sail-card-metric">
-            <span className="sail-card-metric-label">{t.sail_payback}</span>
-            <span className="sail-card-metric-value num">
-              {s.payback === null ? '—' : `${s.payback.toFixed(1)} yr`}
-            </span>
-          </div>
-          <div className="sail-card-metric">
-            <span className="sail-card-metric-label">{t.sail_saving}</span>
-            <span className="sail-card-metric-value num">{s.saving.toFixed(2)}%</span>
-          </div>
-          <div className="sail-card-metric">
-            <span className="sail-card-metric-label">{t.sail_annual}</span>
-            <span className="sail-card-metric-value num">${fmtInt(s.annual)}</span>
-          </div>
-        </div>
-      ))}
+    <div className="sail-recommendation">
+      <div className={`recommendation-summary ${data.decision}`}>
+        <strong>{conclusion}</strong>
+        <span>{t.rec_basis}</span>
+      </div>
+      <div className="sail-compare">
+        {data.candidates.map((candidate) => {
+          const recommended = candidate.sail === data.recommended_sail
+          const bestAvailable = data.decision === 'do_not_install'
+            && candidate.sail === data.best_candidate
+          return (
+            <div
+              key={candidate.sail}
+              className={`sail-card ${recommended ? 'best' : ''} ${bestAvailable ? 'best-available' : ''}`}
+            >
+              <div className="sail-card-head">
+                {L(candidate.label)}
+                {recommended && <span className="sail-tag">{t.rec_recommended}</span>}
+                {bestAvailable && <span className="sail-tag muted">{t.rec_best_available}</span>}
+              </div>
+              <div className="sail-card-metric">
+                <span className="sail-card-metric-label">{t.sail_payback}</span>
+                <span className="sail-card-metric-value num">
+                  {fmtPayback(candidate.payback_years, locale)}
+                </span>
+              </div>
+              <div className="sail-card-metric">
+                <span className="sail-card-metric-label">{t.sail_saving}</span>
+                <span className="sail-card-metric-value num">{candidate.saving_rate_pct.toFixed(2)}%</span>
+              </div>
+              <div className="sail-card-metric">
+                <span className="sail-card-metric-label">{t.sail_npv20}</span>
+                <span className="sail-card-metric-value num">{fmtUsdCompact(candidate.npv_20y_usd)}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

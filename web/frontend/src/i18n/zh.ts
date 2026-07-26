@@ -57,6 +57,15 @@ export interface I18nKeys {
   sail_payback: string
   sail_saving: string
   sail_annual: string
+  sail_npv20: string
+  rec_loading: string
+  rec_error: (message: string) => string
+  rec_install: (sail: string, payback: string, npv: string) => string
+  rec_no_install: (sail: string, npv: string) => string
+  rec_no_candidate: string
+  rec_basis: string
+  rec_recommended: string
+  rec_best_available: string
   sb_ship: string
   sb_adv: string
   sb_override: string
@@ -113,9 +122,6 @@ export interface I18nKeys {
   mp_region_asia: string
   mp_region_eu: string
   mp_region_am: string
-  mp_bunker_hub: string
-  mp_route_recommended: string
-  mp_user_selected: string
   mp_display_timezone: string
 }
 
@@ -146,15 +152,15 @@ const zh: I18nKeys = {
   sec_cashflow_title: '累计净现金流（含贴现）',
   sec_cii: 'IMO合规',
   sec_cii_title: 'CII 评级跃迁 · 避免合规罚款',
-  sec_sail: '帆型PK',
-  sec_sail_title: '三帆型同条件横向对比',
+  sec_sail: '方案推荐',
+  sec_sail_title: '同参数帆型推荐与经济性对比',
   sec_bench: '实船校验',
   sec_bench_title: '节油率 vs 公开报道区间',
   sec_matrix: '全景矩阵',
   sec_matrix_title: '帆型 × 航速 效益热力图',
   sec_route: '航线',
   sec_report: '报告',
-  sec_report_title: '自动生成技术分析',
+  sec_report_title: '自动生成方案推荐报告',
   // KPI
   kpi_payback: '投资回收期',
   kpi_payback_unrecoverable: '不可回收',
@@ -184,6 +190,17 @@ const zh: I18nKeys = {
   sail_payback: '回收期',
   sail_saving: '节油率',
   sail_annual: '年净节省',
+  sail_npv20: '20 年净现值',
+  rec_loading: '正在按全部用户参数比较兼容帆型…',
+  rec_error: (message: string) => `帆型推荐计算失败：${message}`,
+  rec_install: (sail: string, payback: string, npv: string) =>
+    `建议优先评估 ${sail}：回收期 ${payback}，20 年净现值 ${npv}`,
+  rec_no_install: (sail: string, npv: string) =>
+    `当前参数下不建议安装；相对最优候选为 ${sail}，但 20 年净现值仍为 ${npv}`,
+  rec_no_candidate: '当前船型没有可用的兼容帆型',
+  rec_basis: '全部候选保持船型、航线、航速、天气和经济参数一致，并采用各帆型默认配置成本。',
+  rec_recommended: '推荐',
+  rec_best_available: '相对最优',
   // Sidebar
   sb_ship: '船型',
   sb_adv: '实船参数（高级，可选）',
@@ -249,9 +266,6 @@ const zh: I18nKeys = {
   mp_region_asia: '亚太区',
   mp_region_eu: '欧洲区',
   mp_region_am: '美洲区',
-  mp_bunker_hub: '燃油报价中心',
-  mp_route_recommended: '按当前航线推荐',
-  mp_user_selected: '用户手动选择',
   mp_display_timezone: '显示时区',
 }
 

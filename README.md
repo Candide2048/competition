@@ -10,6 +10,7 @@
 - 两级计算：标准组合读取已提交的预计算网格；非标准航速、Flettner 规格、SFOC 或船舶几何参数使用 ERA5 做即时物理重算。
 - 船型与帆型兼容因子在 CII 和经济性计算之前应用，所有主 KPI 使用同一口径。
 - 页面先给出基于 20 年 NPV、回收期和实船区间的筛选结论，并明确显示天气样本与不确定性数据是否可用。
+- 推荐接口会在其余用户参数完全一致时逐一计算所有兼容帆型；只有 20 年 NPV 为正且能在 20 年内回本的候选才会被推荐，否则报告明确给出“不建议安装”及相对最优候选。跨帆型比较采用各帆型配置的默认成本，避免当前点选帆型或其自定义单价影响推荐排序。
 
 ## 项目结构
 
@@ -65,7 +66,7 @@ Python 依赖在 `requirements.txt` 固定版本，前端依赖由 `package-lock
 
 预计算网格位于 `code/results/precomputed/physics_grid.json`，因此不带 ERA5 的 Docker 部署仍可处理标准场景。即时重算需要将 NetCDF 文件放入 `data/`；API 会通过 `/api/options` 声明 `live_physics` 能力，前端据此隐藏不可用控件。缺少 ERA5 时，直接请求 live 场景会返回明确的 HTTP 503。
 
-油价和碳价是可手动应用的参考输入。系统从 U.S. EIA 获取最新发布的 Brent 日度现货，从 Frankfurter/ECB 获取工作日 EUR/USD。Singapore、Rotterdam、Houston 或 Fujairah 报价中心由航线给出默认建议，用户可以显式覆盖；浏览器 IANA 时区只负责时间显示和兼容旧客户端的初始建议，不再替用户决定业务市场。日度数据标为 `DELAYED`，缓存标为 `CACHED`；EIA 不可用时才回退 `STATIC`。生产环境可设置 `EIA_API_KEY`，未设置时使用 EIA 的低限额 `DEMO_KEY`。
+油价和碳价是可手动应用的参考输入。系统从 U.S. EIA 获取最新发布的 Brent 日度现货，从 Frankfurter/ECB 获取工作日 EUR/USD，并按浏览器 IANA 时区自动选择 Singapore、Rotterdam、Houston 或 Fujairah 报价中心。页面明确显示检测到的时区和实际采用的报价中心。日度数据标为 `DELAYED`，缓存标为 `CACHED`；EIA 不可用时才回退 `STATIC`。生产环境可设置 `EIA_API_KEY`，未设置时使用 EIA 的低限额 `DEMO_KEY`。
 
 EEX/ICE 的 EUA 实时成交数据需要市场数据订阅，本项目不抓取或伪造该价格，因此 EU ETS 仍明确标为 `STATIC` 并由用户确认后应用。参考接口：[U.S. EIA Brent daily spot](https://www.eia.gov/dnav/pet/hist/RBRTED.htm)、[Frankfurter](https://frankfurter.dev/)、[EEX Market Data](https://www.eex.com/en/market-data/documentation)。
 

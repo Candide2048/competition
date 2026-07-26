@@ -29,7 +29,6 @@ export interface RouteOption {
   value: string
   label: string
   waypoints: [number, number][] // [lat, lon]
-  recommended_bunker_hub: 'Singapore' | 'Fujairah' | 'Rotterdam' | 'Houston'
 }
 
 export interface SeasonOption {
@@ -170,6 +169,40 @@ export interface MatrixResult {
   payback_years: (number | null)[][]
 }
 
+export interface RecommendationCandidate {
+  sail: string
+  label: string
+  n_sails: number
+  saving_rate_pct: number
+  annual_savings_usd: number
+  initial_cost_usd: number
+  payback_years: number | null
+  npv_10y_usd: number
+  npv_20y_usd: number
+  cii_rating_baseline: string
+  cii_rating_with_sail: string
+  cii_improvement_pct: number
+  compatibility: number
+  within_benchmark: boolean
+  guardrail_applied: boolean
+  is_live: boolean
+  unit_cost_used: number
+}
+
+export interface RecommendationResult {
+  decision: 'install' | 'do_not_install'
+  recommended_sail: string | null
+  best_candidate: string
+  criteria: {
+    primary: 'npv_20y_usd'
+    secondary: 'payback_years'
+    investment_horizon_years: number
+    cost_basis: 'default_by_sail'
+  }
+  candidates: RecommendationCandidate[]
+  report_md: string
+}
+
 async function jget<T>(url: string): Promise<T> {
   const r = await fetch(url)
   if (!r.ok) throw new Error(`${url} → ${r.status}`)
@@ -195,6 +228,23 @@ export async function postScenario(
     throw new Error((detail as { detail?: string }).detail ?? `HTTP ${r.status}`)
   }
   return r.json() as Promise<ScenarioResult>
+}
+
+export async function postRecommendation(
+  req: ScenarioRequest,
+  signal?: AbortSignal,
+): Promise<RecommendationResult> {
+  const r = await fetch('/api/recommendation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+    signal,
+  })
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}))
+    throw new Error((detail as { detail?: string }).detail ?? `HTTP ${r.status}`)
+  }
+  return r.json() as Promise<RecommendationResult>
 }
 
 export function getMatrix(params: {

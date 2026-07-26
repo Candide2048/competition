@@ -115,8 +115,6 @@ export default function Sidebar({
   }
 
   const ov = req.overrides as Override | null
-  const currentRoute = options.routes.find((route) => route.value === req.route)!
-
   const showResults = () => {
     setMobileOpen(false)
     requestAnimationFrame(() => {
@@ -328,7 +326,6 @@ export default function Sidebar({
         {/* ⑤ 实时市场数据 + 经济性 */}
         <div className="group">
           <MarketPrices
-            recommendedHub={currentRoute.recommended_bunker_hub}
             onApply={(fuel, co2) => patch({ fuel_price: fuel, co2_price: co2 })}
           />
         </div>
