@@ -60,3 +60,27 @@ def test_browser_timezone_does_not_select_domestic_china_ets():
     assert region == "asia"
     assert hub == "Singapore"
     assert market == "EU ETS (IMO)"
+
+
+def test_explicit_bunker_hub_overrides_timezone_suggestion():
+    region, hub, market, mode = prices.resolve_market(
+        "Asia/Shanghai", "Rotterdam")
+    assert region == "europe"
+    assert hub == "Rotterdam"
+    assert market == "EU ETS"
+    assert mode == "explicit"
+
+
+def test_timezone_is_only_a_market_suggestion():
+    region, hub, market, mode = prices.resolve_market("Europe/London")
+    assert (region, hub, market) == ("europe", "Rotterdam", "EU ETS")
+    assert mode == "timezone_suggestion"
+
+
+def test_unknown_explicit_bunker_hub_is_rejected():
+    try:
+        prices.resolve_market("Asia/Shanghai", "Unknown")
+    except ValueError as exc:
+        assert "Unsupported bunker hub" in str(exc)
+    else:
+        raise AssertionError("unknown bunker hub was accepted")

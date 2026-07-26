@@ -29,6 +29,7 @@ export interface RouteOption {
   value: string
   label: string
   waypoints: [number, number][] // [lat, lon]
+  recommended_bunker_hub: 'Singapore' | 'Fujairah' | 'Rotterdam' | 'Houston'
 }
 
 export interface SeasonOption {
@@ -126,6 +127,9 @@ export interface ScenarioResult {
     screening_cap_pct: number
     guardrail_applied: boolean
     scenario_basis: string
+    weather_years: number[]
+    departure_samples_per_season: number
+    uncertainty_interval_available: boolean
     cii_year: number
   }
 }

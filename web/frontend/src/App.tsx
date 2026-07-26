@@ -31,10 +31,12 @@ export default function App() {
   const [options, setOptions] = useState<Options | null>(null)
   const [req, setReq] = useState<ScenarioRequest | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
+  const [bootAttempt, setBootAttempt] = useState(0)
   const { t, locale } = useI18n()
   const L = (s: string) => t.labels[s] || s
 
   useEffect(() => {
+    setBootError(null)
     getOptions()
       .then((o) => {
         setOptions(o)
@@ -62,7 +64,7 @@ export default function App() {
         })
       })
       .catch((e: unknown) => setBootError((e as Error).message || t.err_boot_fallback))
-  }, [])
+  }, [bootAttempt])
 
   const patch = (p: Partial<ScenarioRequest>) =>
     setReq((r) => (r ? { ...r, ...p } : r))
@@ -77,14 +79,26 @@ export default function App() {
   if (bootError) {
     return (
       <div className="boot boot-err">
+        <div className="boot-brand" aria-hidden><span>⛵</span><b>WASP</b></div>
         <h1>{t.err_api}</h1>
         <p>{bootError}</p>
         <p className="hint">{t.err_hint} <code>uvicorn app.api:app --port 8600</code>{t.err_hint_suffix}</p>
+        <button className="boot-retry" type="button" onClick={() => setBootAttempt((n) => n + 1)}>
+          {t.retry}
+        </button>
       </div>
     )
   }
   if (!options || !req) {
-    return <div className="boot">{t.loading}</div>
+    return (
+      <div className="boot" role="status" aria-live="polite">
+        <div className="boot-brand"><span aria-hidden>⛵</span><b>WASP</b></div>
+        <div className="boot-skeleton" aria-hidden>
+          <span /><span /><span />
+        </div>
+        <p>{t.loading}</p>
+      </div>
+    )
   }
 
   const ship = options.ships.find((s) => s.value === req.ship)!
@@ -97,7 +111,7 @@ export default function App() {
       <WelcomeToast />
       <Sidebar options={options} req={req} patch={patch} />
 
-      <main className="main">
+      <main className="main" id="results">
         {loading && (
           <div className="live-bar">
             <span className="spinner" /> {t.loading_live}

@@ -62,6 +62,15 @@ SAIL_BENCH_RANGE = {
     "suction_wing": (5.5, 8.0, "bound4blue Pacific Sentinel ~8%"),
 }
 
+# 航线起点/主要补给区域对应的默认参考港。该值只是业务建议，前端允许覆盖。
+ROUTE_BUNKER_HUB = {
+    "middle_east_china": "Fujairah",
+    "arabian_sea": "Fujairah",
+    "bay_of_bengal": "Singapore",
+    "south_china_sea": "Singapore",
+    "indian_ocean_monsoon": "Fujairah",
+}
+
 
 # ═══════════════════════════════════════════════════════════
 # 进程启动：加载物理网格一次
@@ -164,13 +173,18 @@ def health():
 
 
 @app.get("/api/prices")
-def prices(timezone: str = "Asia/Shanghai"):
-    """实时市场价格：根据客户端时区自动匹配区域油价/碳价/汇率。
+def prices(
+    timezone: str = Query("Asia/Shanghai", min_length=1, max_length=64),
+    bunker_hub: Optional[Literal[
+        "Singapore", "Fujairah", "Rotterdam", "Houston"
+    ]] = None,
+):
+    """市场参考价格：时区负责显示，业务市场可显式选择。
 
-    前端首屏拉取一次（或用户手动刷新），返回含数据来源 + 时间戳的完整价格快照。
-    客户端通过 Intl.DateTimeFormat().resolvedOptions().timeZone 获取时区传入。
+    未指定 ``bunker_hub`` 时保留基于时区的初始建议以兼容旧客户端；新版前端
+    使用航线推荐港并允许用户覆盖。
     """
-    return get_market_prices(timezone)
+    return get_market_prices(timezone, bunker_hub)
 
 
 @app.get("/api/options")
@@ -199,6 +213,7 @@ def options():
         "value": r,
         "label": ROUTES_META[r]["name"],
         "waypoints": _to_jsonable(ROUTES_META[r]["waypoints"]),
+        "recommended_bunker_hub": ROUTE_BUNKER_HUB.get(r, "Singapore"),
     } for r in ROUTES_META]
 
     season_options = [{
@@ -362,6 +377,9 @@ def scenario(req: ScenarioRequest):
             "screening_cap_pct": float(cell["screening_cap_pct"]),
             "guardrail_applied": bool(cell["guardrail_applied"]),
             "scenario_basis": "representative_voyage",
+            "weather_years": [2025],
+            "departure_samples_per_season": 1,
+            "uncertainty_interval_available": False,
             "cii_year": req.cii_year,
         },
         "report_md": report_md,

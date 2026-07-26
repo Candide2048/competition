@@ -66,6 +66,7 @@ export default function Sidebar({
   patch: (p: Partial<ScenarioRequest>) => void
 }) {
   const [advOpen, setAdvOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const { locale, toggle: toggleLang, t } = useI18n()
   const { theme, toggle: toggleTheme } = useTheme()
   const L = (s: string) => t.labels[s] || s
@@ -114,10 +115,19 @@ export default function Sidebar({
   }
 
   const ov = req.overrides as Override | null
+  const currentRoute = options.routes.find((route) => route.value === req.route)!
+
+  const showResults = () => {
+    setMobileOpen(false)
+    requestAnimationFrame(() => {
+      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-inner">
+        <div className="sidebar-top">
         <div className="brand">
           <span className="brand-mark">⛵</span>
           <div>
@@ -136,6 +146,20 @@ export default function Sidebar({
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>
+        </div>
+
+        <button
+          className="mobile-params-toggle"
+          type="button"
+          aria-expanded={mobileOpen}
+          aria-controls="scenario-controls"
+          onClick={() => setMobileOpen((open) => !open)}
+        >
+          <span>{mobileOpen ? t.sb_hide_params : t.sb_show_params}</span>
+          <span aria-hidden>{mobileOpen ? '↑' : '↓'}</span>
+        </button>
+
+        <div id="scenario-controls" className="sidebar-controls">
 
         {/* ① 船型 */}
         <div className="group">
@@ -304,6 +328,7 @@ export default function Sidebar({
         {/* ⑤ 实时市场数据 + 经济性 */}
         <div className="group">
           <MarketPrices
+            recommendedHub={currentRoute.recommended_bunker_hub}
             onApply={(fuel, co2) => patch({ fuel_price: fuel, co2_price: co2 })}
           />
         </div>
@@ -360,6 +385,10 @@ export default function Sidebar({
             decimals={3}
             onChange={(v) => patch({ sea_ratio: v })}
           />
+        </div>
+        <button className="mobile-view-results" type="button" onClick={showResults}>
+          {t.sb_view_results}
+        </button>
         </div>
       </div>
     </aside>

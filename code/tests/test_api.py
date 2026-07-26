@@ -67,6 +67,8 @@ def test_options_complete(client):
     for r in o["routes"]:
         assert r["label"]
         assert isinstance(r["waypoints"], list) and len(r["waypoints"]) >= 2
+        assert r["recommended_bunker_hub"] in {
+            "Singapore", "Fujairah", "Rotterdam", "Houston"}
     # 季节 / 航速集 / 燃料 / 区间 / 默认
     assert [s["value"] for s in o["seasons"]] == list(api.SEASONS_META)
     assert o["speeds_kn"] == api.GRID_SPEEDS
@@ -86,6 +88,11 @@ def test_options_flettner_costs(client):
         assert spec in o["flettner_unit_costs"]
         assert o["flettner_unit_costs"][spec] == da.resolve_unit_cost(
             "flettner", spec)
+
+
+def test_prices_rejects_unknown_explicit_market(client):
+    response = client.get("/api/prices", params={"bunker_hub": "Unknown"})
+    assert response.status_code == 422
 
 
 # ═══════════════════════════════════════════════════════════
@@ -273,6 +280,9 @@ def test_cashflow_year_20_matches_backend_npv(client):
     assert year_20["cumulative"] == pytest.approx(
         body["cell"]["npv_20y_usd"], abs=1.0)
     assert body["quality"]["cii_year"] == 2026
+    assert body["quality"]["weather_years"] == [2025]
+    assert body["quality"]["departure_samples_per_season"] == 1
+    assert body["quality"]["uncertainty_interval_available"] is False
 
 
 def test_nondefault_flettner_spec_requires_live(client, monkeypatch):

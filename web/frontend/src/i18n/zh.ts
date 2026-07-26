@@ -4,6 +4,17 @@ export interface I18nKeys {
   brand_sub: string
   hero_eyebrow: string
   hero_verdict: (ship: string, n: number, sail: string, saving: string, ciiFrom: string, ciiTo: string, payback: string) => string
+  decision_state_positive: string
+  decision_state_conditional: string
+  decision_state_negative: string
+  decision_npv_negative: (value: string) => string
+  decision_payback_long: (year: string | null) => string
+  decision_cii_same: (grade: string, pct: string) => string
+  decision_guardrail: string
+  decision_outside_benchmark: string
+  decision_positive_reason: string
+  quality_weather_basis: (years: string, samples: number) => string
+  quality_interval_unavailable: string
   chip_live: string
   chip_cache: string
   sec_kpi: string
@@ -34,7 +45,9 @@ export interface I18nKeys {
   kpi_profit_none: string
   kpi_co2: string
   kpi_co2_foot: (t: string) => string
-  kpi_cii: string
+  kpi_cii_status: string
+  kpi_cii_change: string
+  kpi_cii_same: (grade: string) => string
   kpi_cii_foot: (pct: string) => string
   cf_breakeven: (yr: string) => string
   cf_note: (yr: number) => string
@@ -64,6 +77,9 @@ export interface I18nKeys {
   sb_sfoc: string
   sb_sfoc_note: string
   sb_draft: string
+  sb_show_params: string
+  sb_hide_params: string
+  sb_view_results: string
   loading: string
   loading_live: string
   err_api: string
@@ -71,6 +87,7 @@ export interface I18nKeys {
   err_hint_suffix: string
   err_scenario: string
   err_boot_fallback: string
+  retry: string
   speed_note: (sp: string, used: string) => string
   guardrail_note: (raw: string, cap: string) => string
   labels: Record<string, string>
@@ -96,6 +113,10 @@ export interface I18nKeys {
   mp_region_asia: string
   mp_region_eu: string
   mp_region_am: string
+  mp_bunker_hub: string
+  mp_route_recommended: string
+  mp_user_selected: string
+  mp_display_timezone: string
 }
 
 const zh: I18nKeys = {
@@ -104,7 +125,18 @@ const zh: I18nKeys = {
   // Hero
   hero_eyebrow: 'Wind-Assisted Ship Propulsion · 效益决策',
   hero_verdict: (ship: string, n: number, sail: string, saving: string, ciiFrom: string, ciiTo: string, payback: string) =>
-    `为 ${ship} 加装 ${n} 台${sail}，节油 ${saving}%，CII ${ciiFrom}→${ciiTo}，回收 ${payback}。`,
+    `为 ${ship} 加装 ${n} 台${sail}，节油 ${saving}%，${ciiFrom === ciiTo ? `CII 维持 ${ciiTo}` : `CII ${ciiFrom}→${ciiTo}`}，回收 ${payback}。`,
+  decision_state_positive: '建议进入方案深化',
+  decision_state_conditional: '有条件可行，需进一步验证',
+  decision_state_negative: '当前经济假设下不建议投资',
+  decision_npv_negative: (value: string) => `20 年净现值为 ${value}`,
+  decision_payback_long: (year: string | null) => year ? `预计回收期 ${year} 年，超过 20 年评估期` : '评估期内无法回收投资',
+  decision_cii_same: (grade: string, pct: string) => `CII 维持 ${grade}，碳强度改善 ${pct}%`,
+  decision_guardrail: '节油率已触发实船证据护栏，需用海试数据复核',
+  decision_outside_benchmark: '结果位于当前公开实船参考区间之外',
+  decision_positive_reason: '20 年净现值为正，且节油率位于公开实船参考区间内',
+  quality_weather_basis: (years: string, samples: number) => `天气 ${years} · 每季 ${samples} 个代表日`,
+  quality_interval_unavailable: '暂未生成 P10/P50/P90',
   chip_live: '实时物理重算 (live)',
   chip_cache: '预计算网格 (缓存)',
   // Section headers
@@ -131,13 +163,15 @@ const zh: I18nKeys = {
   kpi_annual_foot: (trips: string) => `${trips} 航次/年 · 含碳价收益`,
   kpi_saving: '节油率',
   kpi_saving_foot: (t: string) => `单航次节油 ${t} t`,
-  kpi_profit: '20年累计收益',
+  kpi_profit: '20年净现值',
   kpi_profit_earning: (yr: string) => `第 ${yr} 年开始盈利`,
   kpi_profit_expect: (yr: string) => `预计第 ${yr} 年回本`,
   kpi_profit_none: '20年内未回本，建议调整参数',
   kpi_co2: '年 CO₂ 减排',
   kpi_co2_foot: (t: string) => `单航次 ${t} t`,
-  kpi_cii: 'CII 跃迁',
+  kpi_cii_status: 'CII 状态',
+  kpi_cii_change: 'CII 等级变化',
+  kpi_cii_same: (grade: string) => `维持 ${grade}`,
   kpi_cii_foot: (pct: string) => `碳强度改善 ${pct}%`,
   // Cashflow
   cf_breakeven: (yr: string) => `✓ 第 ${yr} 年收回全部投资，此后持续盈利`,
@@ -171,6 +205,9 @@ const zh: I18nKeys = {
   sb_sfoc: 'SFOC (g/kWh)',
   sb_sfoc_note: 'SFOC ≠ 180 或非网格航速将触发 live 实时物理重算。',
   sb_draft: '吃水 (m)',
+  sb_show_params: '调整方案参数',
+  sb_hide_params: '收起方案参数',
+  sb_view_results: '查看更新后的结果',
   // App loading
   loading: '加载参数选项…',
   loading_live: '实时物理重算中（首次约数秒，缓存后瞬时）…',
@@ -179,6 +216,7 @@ const zh: I18nKeys = {
   err_hint_suffix: '。',
   err_scenario: '场景计算失败：',
   err_boot_fallback: '选项加载失败',
+  retry: '重新连接',
   speed_note: (sp: string, used: string) => `航速 ${sp} kn 不在标准集，已取最近邻 ${used} kn 网格值。`,
   guardrail_note: (raw: string, cap: string) =>
     `理想物理结果为 ${raw}%，已按实船筛选证据上限 ${cap}% 保守校准；原值保留在 API 质量字段中。`,
@@ -211,6 +249,10 @@ const zh: I18nKeys = {
   mp_region_asia: '亚太区',
   mp_region_eu: '欧洲区',
   mp_region_am: '美洲区',
+  mp_bunker_hub: '燃油报价中心',
+  mp_route_recommended: '按当前航线推荐',
+  mp_user_selected: '用户手动选择',
+  mp_display_timezone: '显示时区',
 }
 
 export default zh
