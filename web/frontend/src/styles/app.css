@@ -299,6 +299,11 @@ input[type='range']::-moz-range-thumb {
   color: #fff;
   box-shadow: var(--glow-accent);
 }
+.seg-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 
 /* ══════════════ Hero ══════════════ */
 .hero {

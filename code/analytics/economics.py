@@ -13,7 +13,7 @@
 
     annual_savings = (fuel_saved_t × fuel_price + co2_reduced_t × co2_price) × work_rate
 
-    NPV(n) = Σ_{t=1}^{n} (annual_savings × (1-maintenance)^t) / (1+r)^t - c_initial
+    NPV(n) = Σ_{t=1}^{n} (annual_savings - c_initial×maintenance) / (1+r)^t - c_initial
 
     payback = c_initial / annual_savings  (简化，不考虑贴现)
 
@@ -105,6 +105,22 @@ def annual_savings(fuel_saved_t_per_year: float,
     }
 
 
+def discounted_cashflow_series(annual_savings_usd: float,
+                               initial_cost_usd: float,
+                               years: int = 40,
+                               discount_rate: float = DEFAULT_DISCOUNT_RATE,
+                               maintenance_rate: float = DEFAULT_MAINTENANCE_RATE) -> list[dict]:
+    """Return the authoritative discounted cumulative cashflow series."""
+    annual_maintenance = initial_cost_usd * maintenance_rate
+    cumulative = -initial_cost_usd
+    points = [{"year": 0, "cumulative": float(cumulative)}]
+    for year in range(1, years + 1):
+        net_cash = annual_savings_usd - annual_maintenance
+        cumulative += net_cash / (1.0 + discount_rate) ** year
+        points.append({"year": year, "cumulative": float(cumulative)})
+    return points
+
+
 def npv(annual_savings_usd: float, initial_cost_usd: float,
         years: list[int] = DEFAULT_INVESTMENT_YEARS,
         discount_rate: float = DEFAULT_DISCOUNT_RATE,
@@ -125,15 +141,13 @@ def npv(annual_savings_usd: float, initial_cost_usd: float,
     Returns:
         dict: {5: npv_5y, 10: npv_10y, 15: npv_15y, 20: npv_20y}
     """
-    annual_maintenance = initial_cost_usd * maintenance_rate
     result = {}
     for n in years:
-        npv_value = 0.0
-        for t in range(1, n + 1):
-            net_cash = annual_savings_usd - annual_maintenance
-            npv_value += net_cash / (1.0 + discount_rate) ** t
-        npv_value -= initial_cost_usd
-        result[n] = float(npv_value)
+        points = discounted_cashflow_series(
+            annual_savings_usd, initial_cost_usd, n,
+            discount_rate, maintenance_rate,
+        )
+        result[n] = points[-1]["cumulative"]
     return result
 
 

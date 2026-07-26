@@ -58,6 +58,7 @@ export default function App() {
           sfoc: o.ranges.sfoc.default ?? 180,
           overrides: null,
           locale,
+          cii_year: o.defaults.cii_year,
         })
       })
       .catch((e: unknown) => setBootError((e as Error).message || t.err_boot_fallback))
@@ -122,6 +123,14 @@ export default function App() {
                   {t.speed_note(req.speed.toFixed(1), data.speed_used.toFixed(0))}
                 </div>
               )}
+              {data.quality.guardrail_applied && (
+                <div className="note">
+                  {t.guardrail_note(
+                    data.quality.saving_rate_pct_before_guardrail.toFixed(1),
+                    data.quality.screening_cap_pct.toFixed(0),
+                  )}
+                </div>
+              )}
               <KpiGrid res={data} />
             </Reveal>
 
@@ -134,8 +143,7 @@ export default function App() {
                 <h2 className="section-title">{t.sec_cashflow_title}</h2>
               </div>
               <CashflowChart
-                initialCost={data.cell.initial_cost_usd}
-                annualSavings={data.cell.annual_savings_usd}
+                points={data.cashflow}
               />
             </Reveal>
 
@@ -152,9 +160,6 @@ export default function App() {
                   baseline={data.cell.cii_rating_baseline}
                   withSail={data.cell.cii_rating_with_sail}
                   improvementPct={data.cell.cii_improvement_pct}
-                  co2ReducedPerTrip={data.cell.co2_reduced_t}
-                  co2Price={req.co2_price}
-                  tripsPerYear={data.trips_per_year}
                 />
               </div>
             </Reveal>
@@ -174,6 +179,8 @@ export default function App() {
                 fuelPrice={req.fuel_price}
                 co2Price={req.co2_price}
                 seaRatio={req.sea_ratio}
+                fuelType={req.fuel_type}
+                ciiYear={req.cii_year}
                 currentSpeed={req.speed}
               />
             </Reveal>
@@ -209,6 +216,8 @@ export default function App() {
                 fuelPrice={req.fuel_price}
                 co2Price={req.co2_price}
                 seaRatio={req.sea_ratio}
+                fuelType={req.fuel_type}
+                ciiYear={req.cii_year}
               />
             </Reveal>
 

@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import { computeCashflow, findBreakevenYear } from '../lib/cashflow'
+import { findBreakevenYear, type CashflowPoint } from '../lib/cashflow'
 import { fmtInt } from '../lib/format'
 import { useI18n } from '../i18n'
 
@@ -7,17 +6,11 @@ import { useI18n } from '../i18n'
  * 累计现金流 SVG 曲线 —— 标注回本时刻，深色科技风配色。
  */
 export default function CashflowChart({
-  initialCost,
-  annualSavings,
+  points,
 }: {
-  initialCost: number
-  annualSavings: number
+  points: CashflowPoint[]
 }) {
   const { t } = useI18n()
-  const points = useMemo(
-    () => computeCashflow(initialCost, annualSavings),
-    [initialCost, annualSavings],
-  )
   const breakevenYear = findBreakevenYear(points)
 
   const W = 600

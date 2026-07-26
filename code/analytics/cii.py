@@ -42,6 +42,7 @@ YEAR_REDUCTION_FACTORS = {
     2025: 0.94,
     2026: 0.89,  # 目标降低 11%
 }
+DEFAULT_CII_YEAR = 2026
 
 # ── MEPC.353(78) G2 Table 1: 船型参考线参数 ──
 # CII_ref = a × Capacity^(-c), Capacity 单位 DWT 或 GT
@@ -80,7 +81,7 @@ class CIIBaseline:
     """
     ship_type: str = "tanker"
     capacity: float = 300000.0  # KVLCC2 DWT
-    year: int = 2024
+    year: int = DEFAULT_CII_YEAR
     source: str = "MEPC.353(78) G2 Table 1 + 年度折减系数"
 
     @property
@@ -98,7 +99,11 @@ class CIIBaseline:
 
     @property
     def year_factor(self) -> float:
-        return YEAR_REDUCTION_FACTORS.get(self.year, 0.89)
+        if self.year not in YEAR_REDUCTION_FACTORS:
+            raise ValueError(
+                f"year={self.year} 暂无已验证的 CII 折减系数，"
+                f"支持年份: {tuple(YEAR_REDUCTION_FACTORS)}")
+        return YEAR_REDUCTION_FACTORS[self.year]
 
     @property
     def required_cii(self) -> float:

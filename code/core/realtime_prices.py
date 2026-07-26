@@ -3,8 +3,8 @@
 
 通过免费公开 API 获取：
   1. EUR/USD 汇率（frankfurter.app，欧央行数据）
-  2. VLSFO 燃油参考价（基于 Brent 原油期货换算 + 港口溢价）
-  3. 碳排放配额价格（EU ETS / 中国全国碳市场）
+  2. VLSFO 燃油参考估值（EIA Brent 日度现货 + 港口溢价）
+  3. 碳排放配额参考估值（EU ETS）
 
 设计原则:
   - 零 API Key 依赖（全部使用免费公开端点）
@@ -20,12 +20,13 @@
 
 碳市场映射：
   - Europe/* → EU ETS (EUR/tCO2)
-  - Asia/Shanghai → China National ETS (CNY/tCO2)
-  - 其他亚洲 → EU ETS (国际航运适用)
+  - Asia/* → EU ETS (国际航运适用)
   - America/* → EU ETS (国际航运适用)
 """
 import json
+import os
 import time
+import urllib.parse
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -46,7 +47,7 @@ class PricePoint:
     source: str                # 数据来源名称
     source_url: str            # 数据来源 URL
     timestamp: str             # ISO 格式时间戳
-    freshness: str             # "live" | "cached" | "static"
+    freshness: str             # "live" | "delayed" | "cached" | "static"
     region: str                # 适用区域
     note: str = ""             # 附注
 
@@ -71,10 +72,10 @@ class MarketPrices:
 # 按时区前缀映射到船用燃料加油港和碳市场
 TIMEZONE_REGION_MAP = {
     # 亚太
-    "Asia/Shanghai": ("asia", "Singapore", "China National ETS"),
-    "Asia/Chongqing": ("asia", "Singapore", "China National ETS"),
-    "Asia/Hong_Kong": ("asia", "Singapore", "China National ETS"),
-    "Asia/Taipei": ("asia", "Singapore", "China National ETS"),
+    "Asia/Shanghai": ("asia", "Singapore", "EU ETS (IMO)"),
+    "Asia/Chongqing": ("asia", "Singapore", "EU ETS (IMO)"),
+    "Asia/Hong_Kong": ("asia", "Singapore", "EU ETS (IMO)"),
+    "Asia/Taipei": ("asia", "Singapore", "EU ETS (IMO)"),
     "Asia/Singapore": ("asia", "Singapore", "EU ETS (IMO)"),
     "Asia/Tokyo": ("asia", "Singapore", "EU ETS (IMO)"),
     "Asia/Seoul": ("asia", "Singapore", "EU ETS (IMO)"),
@@ -174,7 +175,7 @@ def fetch_eur_usd() -> PricePoint:
     if cached:
         return PricePoint(**cached, freshness="cached")
 
-    data = _fetch_json("https://www.frankfurter.app/latest?from=EUR&to=USD")
+    data = _fetch_json("https://api.frankfurter.app/latest?from=EUR&to=USD")
     if data and "rates" in data and "USD" in data["rates"]:
         rate = float(data["rates"]["USD"])
         ts = data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
@@ -183,10 +184,11 @@ def fetch_eur_usd() -> PricePoint:
             currency="-",
             unit="EUR/USD",
             source="European Central Bank (via frankfurter.app)",
-            source_url="https://www.frankfurter.app",
+            source_url="https://frankfurter.dev/",
             timestamp=f"{ts}T12:00:00Z",
-            freshness="live",
+            freshness="delayed",
             region="Global",
+            note="ECB reference rate; published on business days",
         )
         _cache_set("eur_usd", {
             "value": point.value, "currency": point.currency,
@@ -220,37 +222,28 @@ BARREL_PER_TONNE = 7.33
 def fetch_fuel_price(bunker_hub: str = "Singapore") -> PricePoint:
     """获取 VLSFO 参考价 (USD/kg)
 
-    策略：Brent 原油期货 × barrel_to_tonne + 港口溢价
-    数据源：免费公开 API（多源尝试）
+    策略：EIA 最新 Brent 日度现货 × barrel_to_tonne + 港口溢价。
+    VLSFO 是由真实原油基准推导的区域参考值，不是港口成交报价。
     """
-    cached = _cache_get(f"fuel_{bunker_hub}")
-    if cached:
-        return PricePoint(**cached, freshness="cached")
-
-    brent_usd_bbl = _fetch_brent_price()
+    quote, from_cache = _fetch_eia_brent_quote()
     premium = BUNKER_PREMIUM_USD_PER_T.get(bunker_hub, 100.0)
 
-    if brent_usd_bbl is not None:
+    if quote is not None:
+        brent_usd_bbl = quote["value"]
         vlsfo_usd_per_t = brent_usd_bbl * BARREL_PER_TONNE + premium
         vlsfo_usd_per_kg = vlsfo_usd_per_t / 1000.0
-        now_iso = datetime.now(timezone.utc).isoformat()
         point = PricePoint(
             value=round(vlsfo_usd_per_kg, 3),
             currency="USD",
             unit="per_kg",
-            source=f"Brent crude + {bunker_hub} premium (${premium:.0f}/t)",
-            source_url="https://www.frankfurter.app",
-            timestamp=now_iso,
-            freshness="live",
+            source=f"U.S. EIA Brent spot + {bunker_hub} premium",
+            source_url="https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+            timestamp=f"{quote['period']}T00:00:00Z",
+            freshness="cached" if from_cache else "delayed",
             region=bunker_hub,
-            note=f"Brent=${brent_usd_bbl:.1f}/bbl → VLSFO≈${vlsfo_usd_per_t:.0f}/t",
+            note=(f"EIA Brent ${brent_usd_bbl:.2f}/bbl on {quote['period']}; "
+                  f"derived VLSFO ≈${vlsfo_usd_per_t:.0f}/t (not a bunker quote)"),
         )
-        _cache_set(f"fuel_{bunker_hub}", {
-            "value": point.value, "currency": point.currency,
-            "unit": point.unit, "source": point.source,
-            "source_url": point.source_url, "timestamp": point.timestamp,
-            "region": point.region, "note": point.note,
-        })
         return point
 
     # Fallback
@@ -266,42 +259,40 @@ def fetch_fuel_price(bunker_hub: str = "Singapore") -> PricePoint:
     )
 
 
-def _fetch_brent_price() -> Optional[float]:
-    """尝试多源获取 Brent 原油价格 (USD/bbl)
+def _fetch_eia_brent_quote() -> tuple[Optional[dict], bool]:
+    """Fetch the latest published Brent spot observation from U.S. EIA.
 
-    Source 1: 欧央行 SDW (统计数据仓库) — Brent spot price
-    Source 2: 简单估算（基于汇率波动推断，仅作最后保底）
+    EIA publishes daily observations with a reporting delay. ``DEMO_KEY``
+    keeps local/demo deployment keyless; production may set ``EIA_API_KEY``.
     """
-    # Source 1: ECB Statistical Data Warehouse — Brent spot
-    # ECB publishes Brent reference price in EUR; convert via EUR/USD
-    data = _fetch_json(
-        "https://www.frankfurter.app/latest?from=USD&to=EUR"
-    )
-    if data and "rates" in data:
-        # frankfurter doesn't serve commodities, try alternative
-        pass
+    cached = _cache_get("eia_brent_daily")
+    if cached:
+        return cached, True
 
-    # Source 2: 使用一个合理的市场参考区间
-    # 2026年 Brent 期货参考价区间 $70-85/bbl (EIA Short-Term Outlook)
-    # 取中位估计 $75/bbl 作为次优来源
-    # 注：这里用一个简单的估算模型，实际部署可接入付费 API
-    estimated_brent = _estimate_brent_from_public_data()
-    if estimated_brent:
-        return estimated_brent
+    params = [
+        ("api_key", os.getenv("EIA_API_KEY", "DEMO_KEY")),
+        ("frequency", "daily"),
+        ("data[0]", "value"),
+        ("facets[series][]", "RBRTE"),
+        ("sort[0][column]", "period"),
+        ("sort[0][direction]", "desc"),
+        ("length", "1"),
+    ]
+    url = ("https://api.eia.gov/v2/petroleum/pri/spt/data/?"
+           + urllib.parse.urlencode(params))
+    payload = _fetch_json(url)
+    try:
+        row = payload["response"]["data"][0]
+        value = float(row["value"])
+        period = str(row["period"])
+        if not 10.0 <= value <= 300.0 or len(period) != 10:
+            return None, False
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None, False
 
-    return None
-
-
-def _estimate_brent_from_public_data() -> Optional[float]:
-    """从公开数据源估算 Brent 当前价格
-
-    使用 US EIA (能源信息署) 公开数据 API
-    """
-    # EIA Open Data API (free, requires key — fallback to estimate)
-    # For deployment without API key: use recent market consensus
-    # IEA/EIA 2026 forecast: $70-80/bbl for Brent
-    # We use 75 as a reasonable mid-point for demo
-    return 75.0  # USD/bbl — conservative mid-estimate
+    quote = {"value": value, "period": period}
+    _cache_set("eia_brent_daily", quote)
+    return quote, False
 
 
 # ═══════════════════════════════════════════════════════════
@@ -315,12 +306,8 @@ def fetch_carbon_price(carbon_market: str = "EU ETS",
     EU ETS: ~€60-80/tCO2 (2026)
     China ETS: ~¥80-100/tCO2 (2026)
 
-    对于国际航运，2024年起 EU ETS 覆盖 40% 航次排放，2026年起 70%。
+    对于国际航运，EU ETS 阶段比例为 2024 年 40%、2025 年 70%、2026 年 100%。
     """
-    cached = _cache_get(f"co2_{carbon_market}")
-    if cached:
-        return PricePoint(**cached, freshness="cached")
-
     # 尝试获取 EU ETS 价格
     if "EU" in carbon_market:
         price_eur = _fetch_eu_ets_price()
@@ -330,19 +317,13 @@ def fetch_carbon_price(carbon_market: str = "EU ETS",
                 value=round(price_eur, 1),
                 currency="EUR",
                 unit="per_tCO2",
-                source="EU ETS EUA Futures (ICE/EEX reference)",
-                source_url="https://www.eex.com",
+                source="EU ETS EUA reference estimate",
+                source_url="",
                 timestamp=now_iso,
-                freshness="live",
+                freshness="static",
                 region="EU/EEA + International Maritime",
-                note="EU ETS maritime: 40% coverage 2024, 70% from 2026",
+                note="EU ETS maritime phase-in: 40% in 2024, 70% in 2025, 100% in 2026",
             )
-            _cache_set(f"co2_{carbon_market}", {
-                "value": point.value, "currency": point.currency,
-                "unit": point.unit, "source": point.source,
-                "source_url": point.source_url, "timestamp": point.timestamp,
-                "region": point.region, "note": point.note,
-            })
             return point
 
     elif "China" in carbon_market:
@@ -355,19 +336,13 @@ def fetch_carbon_price(carbon_market: str = "EU ETS",
                 value=round(price_eur, 1),
                 currency="EUR",
                 unit="per_tCO2",
-                source=f"China National ETS (¥{price_cny:.0f}/tCO2 → EUR)",
-                source_url="https://www.cceex.com.cn",
+                source=f"China National ETS reference estimate (¥{price_cny:.0f}/tCO2 → EUR)",
+                source_url="",
                 timestamp=now_iso,
-                freshness="live",
+                freshness="static",
                 region="China",
                 note=f"全国碳市场 CEA ¥{price_cny:.0f}/tCO2",
             )
-            _cache_set(f"co2_{carbon_market}", {
-                "value": point.value, "currency": point.currency,
-                "unit": point.unit, "source": point.source,
-                "source_url": point.source_url, "timestamp": point.timestamp,
-                "region": point.region, "note": point.note,
-            })
             return point
 
     # Fallback
@@ -387,7 +362,7 @@ def fetch_carbon_price(carbon_market: str = "EU ETS",
 
 
 def _fetch_eu_ets_price() -> Optional[float]:
-    """尝试获取 EU ETS 碳价
+    """返回 EU ETS 固定参考估值。
 
     2026 年 EU ETS EUA 期货参考区间: €55-75/tCO2
     实际交易数据需付费 API，此处用市场共识估计
@@ -401,7 +376,7 @@ def _fetch_eu_ets_price() -> Optional[float]:
 
 
 def _fetch_china_ets_price() -> Optional[float]:
-    """尝试获取中国全国碳市场价格
+    """返回中国全国碳市场固定参考估值。
 
     2026 年 CEA 参考区间: ¥80-110/tCO2
     """

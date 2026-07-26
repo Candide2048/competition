@@ -76,7 +76,20 @@ export default function Sidebar({
 
   const onShip = (value: string) => {
     const m = options.ships.find((s) => s.value === value)!.meta
-    patch({ ship: value, overrides: useOverride ? metaToOverride(m) : null })
+    const currentCompatibility = options.compatibility[value]?.[req.sail] ?? 0
+    const fallbackSail = options.sails.find(
+      (s) => (options.compatibility[value]?.[s.value] ?? 0) > 0,
+    )
+    const nextSail = currentCompatibility > 0 ? req.sail : fallbackSail?.value ?? req.sail
+    const nextCost = nextSail === 'flettner'
+      ? options.flettner_unit_costs[req.flettner_spec]
+      : options.sails.find((s) => s.value === nextSail)?.default_unit_cost ?? req.unit_cost
+    patch({
+      ship: value,
+      sail: nextSail,
+      unit_cost: nextCost,
+      overrides: useOverride ? metaToOverride(m) : null,
+    })
   }
 
   const onSail = (value: string) => {
@@ -139,11 +152,12 @@ export default function Sidebar({
         </div>
 
         {/* ② 实船参数（高级，可选）→ 触发 live 重算 */}
-        <div className="group">
-          <button className="adv-toggle" onClick={() => setAdvOpen((o) => !o)}>
-            <span>{advOpen ? '▾' : '▸'} {t.sb_adv}</span>
-          </button>
-          {advOpen && (
+        {options.capabilities.live_physics && (
+          <div className="group">
+            <button className="adv-toggle" onClick={() => setAdvOpen((o) => !o)}>
+              <span>{advOpen ? '▾' : '▸'} {t.sb_adv}</span>
+            </button>
+            {advOpen && (
             <div className="adv-body">
               <label className="check">
                 <input
@@ -215,8 +229,9 @@ export default function Sidebar({
               />
               <p className="adv-note">{t.sb_sfoc_note}</p>
             </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* 航速 */}
         <div className="group">
@@ -240,6 +255,7 @@ export default function Sidebar({
               <button
                 key={s.value}
                 className={`seg-btn ${req.sail === s.value ? 'on' : ''}`}
+                disabled={(options.compatibility[req.ship]?.[s.value] ?? 0) <= 0}
                 onClick={() => onSail(s.value)}
               >
                 {L(s.label)}

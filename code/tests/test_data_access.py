@@ -213,8 +213,12 @@ class TestPostprocessBridge:
             co2_price_eur_per_t=self._CO2_PRICE, ship_meta=_SHIP_META)
         ref = self._reference_cell(row)
         # postprocess 新增兼容性字段，在 ref 基础上补充
-        compat_keys = {"compatibility", "compatible",
-                       "saving_rate_pct_adjusted", "payback_years_adjusted"}
+        compat_keys = {
+            "compatibility", "compatible", "physics_saving_rate_pct",
+            "saving_rate_pct_before_guardrail", "screening_cap_pct",
+            "guardrail_applied", "saving_rate_pct_adjusted",
+            "payback_years_adjusted",
+        }
         assert set(cell.keys()) == set(ref.keys()) | compat_keys
         for k in ref:
             if isinstance(ref[k], (int, float)) and ref[k] is not None:

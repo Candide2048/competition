@@ -12,8 +12,9 @@ export function useScenario(req: ScenarioRequest | null, debounceMs = 250) {
 
   useEffect(() => {
     if (!req) return
+    abortRef.current?.abort()
+    setData(null)
     const t = setTimeout(() => {
-      abortRef.current?.abort()
       const ac = new AbortController()
       abortRef.current = ac
       setLoading(true)
@@ -31,7 +32,10 @@ export function useScenario(req: ScenarioRequest | null, debounceMs = 250) {
           if (!ac.signal.aborted) setLoading(false)
         })
     }, debounceMs)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      abortRef.current?.abort()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, debounceMs])
 

@@ -29,6 +29,7 @@ from analytics.cii import (
     cii_improvement,
     CIIBaseline,
     RATING_BOUNDARIES,
+    DEFAULT_CII_YEAR,
 )
 from analytics.economics import (
     initial_cost,
@@ -144,7 +145,11 @@ class TestCII:
         """CII 基准应引用 IMO 官方来源 (MEPC.353(78))"""
         bl = CIIBaseline()
         assert "MEPC.353(78)" in bl.source
-        assert bl.year == 2024
+        assert bl.year == DEFAULT_CII_YEAR == 2026
+
+    def test_cii_unknown_year_rejected(self):
+        with pytest.raises(ValueError, match="CII 折减系数"):
+            CIIBaseline(year=2027).required_cii
 
 
 # ---------- economics 测试 ----------

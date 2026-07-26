@@ -44,7 +44,7 @@ from models.resistance.holtrop_mennen import compute_resistance
 from models.thrust_balance import solve_balance
 from analytics.cii import (
     CIIBaseline, compute_cii, cii_rating, cii_improvement,
-    DEFAULT_EMISSION_FACTOR,
+    DEFAULT_CII_YEAR, DEFAULT_EMISSION_FACTOR,
 )
 from analytics.economics import (
     initial_cost, annual_savings, payback_period, npv, sensitivity,
@@ -170,6 +170,7 @@ def run_phase_b_full_voyage(
     sail_AR: float = DEFAULT_SAIL_AR,
     sail_DeD: float = DEFAULT_SAIL_DED,
     n_sails: int = DEFAULT_N_SAILS,
+    cii_year: int = DEFAULT_CII_YEAR,
     trips_per_year: int = DEFAULT_TRIPS_PER_YEAR,
     verbose: bool = True,
 ) -> dict:
@@ -187,6 +188,7 @@ def run_phase_b_full_voyage(
         V_ship_kn: 船速 (kn)
         sail_H/D/AR/DeD: Flettner 风帆参数
         n_sails: 风帆台数
+        cii_year: IMO CII 降低因子年份
         trips_per_year: 年航次数
         verbose: 打印进度
 
@@ -374,7 +376,7 @@ def run_phase_b_full_voyage(
         print("[Step 6] CII 评级...")
     cii_baseline = compute_cii(fuel_baseline_total_kg / 1000.0, ship.DWT, total_nm)
     cii_with_sail = compute_cii(fuel_with_sail_total_kg / 1000.0, ship.DWT, total_nm)
-    bl = CIIBaseline(ship_type="tanker", capacity=ship.DWT, year=2024)
+    bl = CIIBaseline(ship_type="tanker", capacity=ship.DWT, year=cii_year)
     rating_baseline = cii_rating(cii_baseline, bl.required_cii)
     rating_with_sail = cii_rating(cii_with_sail, bl.required_cii)
     cii_imp = cii_improvement(cii_baseline, cii_with_sail)
@@ -383,7 +385,7 @@ def run_phase_b_full_voyage(
         print(f"        基线 CII = {cii_baseline:.4f} gCO2/dwt·nm 评级 {rating_baseline}")
         print(f"        有帆 CII = {cii_with_sail:.4f} gCO2/dwt·nm 评级 {rating_with_sail}")
         print(f"        CII 改善率 {cii_imp:.2f}%")
-        print(f"        Required CII 2024 = {bl.required_cii:.4f}")
+        print(f"        Required CII {cii_year} = {bl.required_cii:.4f}")
         print()
 
     # ── Step 7: 经济性 ──

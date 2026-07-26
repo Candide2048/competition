@@ -98,7 +98,7 @@ class ERA5Dataset:
         self.merged = xr.merge([
             self.ds_wind[["u10", "v10"]],
             self.ds_meteo[["msl", "sst"]]
-        ])
+        ], compat="no_conflicts")
 
         self._closed = False
 

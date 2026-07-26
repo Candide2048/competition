@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../i18n'
 
 interface PricePoint {
@@ -8,7 +8,7 @@ interface PricePoint {
   source: string
   source_url: string
   timestamp: string
-  freshness: 'live' | 'cached' | 'static'
+  freshness: 'live' | 'delayed' | 'cached' | 'static'
   region: string
   note: string
 }
@@ -30,9 +30,11 @@ interface MarketPricesData {
 }
 
 function FreshBadge({ freshness }: { freshness: string }) {
-  const cls = freshness === 'live' ? 'fresh-live' : freshness === 'cached' ? 'fresh-cached' : 'fresh-static'
-  const icon = freshness === 'live' ? '●' : freshness === 'cached' ? '◐' : '○'
-  const label = freshness === 'live' ? 'LIVE' : freshness === 'cached' ? 'CACHED' : 'STATIC'
+  const cls = freshness === 'live' || freshness === 'delayed'
+    ? 'fresh-live'
+    : freshness === 'cached' ? 'fresh-cached' : 'fresh-static'
+  const icon = freshness === 'live' ? '●' : freshness === 'delayed' ? '◒' : freshness === 'cached' ? '◐' : '○'
+  const label = freshness === 'live' ? 'LIVE' : freshness === 'delayed' ? 'DELAYED' : freshness === 'cached' ? 'CACHED' : 'STATIC'
   return <span className={`fresh-badge ${cls}`}>{icon} {label}</span>
 }
 
@@ -76,7 +78,6 @@ export default function MarketPrices({ onApply }: {
   const [data, setData] = useState<MarketPricesData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const autoApplied = useRef(false)
   const { t } = useI18n()
 
   const fetchPrices = useCallback(async () => {
@@ -88,17 +89,12 @@ export default function MarketPrices({ onApply }: {
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const json = await r.json() as MarketPricesData
       setData(json)
-      // 首次加载自动同步实时价格到 slider（仅一次）
-      if (!autoApplied.current) {
-        onApply(json.values.fuel_price_usd_per_kg, json.values.co2_price_eur_per_t)
-        autoApplied.current = true
-      }
     } catch (e) {
       setError((e as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [onApply])
+  }, [])
 
   useEffect(() => { fetchPrices() }, [])
 

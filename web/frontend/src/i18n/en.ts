@@ -74,6 +74,8 @@ const en: I18nKeys = {
   err_scenario: 'Scenario calculation failed: ',
   err_boot_fallback: 'Failed to load options',
   speed_note: (sp, used) => `Speed ${sp} kn not in grid — using nearest ${used} kn.`,
+  guardrail_note: (raw, cap) =>
+    `Ideal-physics result ${raw}% was conservatively calibrated to the ${cap}% in-service screening limit; the raw value remains in API quality metadata.`,
   labels: {
     // Ships
     'VLCC 原油轮 (KVLCC2, 30万 DWT)': 'VLCC Crude Tanker (KVLCC2, 300k DWT)',
@@ -114,7 +116,7 @@ const en: I18nKeys = {
   matrix_err: (msg) => `Matrix load failed: ${msg}`,
   welcome: 'Adjust ship type, speed & other parameters in the left panel — all charts update in real time',
   // Market Prices
-  mp_title: 'Live Market Data',
+  mp_title: 'Latest Market Reference',
   mp_refresh: 'Refresh',
   mp_fuel: 'VLSFO Bunker',
   mp_co2: 'Carbon Allowance',

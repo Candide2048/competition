@@ -2,6 +2,14 @@
 # 来源: IET Song 2025 Table 2 / 赵大刚 2026 综述 / Guzelbulut 2024 / 船舶风帆技术数据搜集表.xlsx
 # 更新日期: 2026-07-20
 
+# 面向船东前期筛选的经验护栏。超过该值的理想化物理结果仍保留在 API
+# quality.raw_saving_rate_pct 中，但不直接进入 CII 和经济性计算。
+# 来源: refs/文献数据溯源对照表.md 汇总的实船典型范围 5%-30%；
+# 航线优化研究中更高的瞬时/局部结果不作为本工具的年化投资依据。
+screening_guardrails:
+  max_saving_rate_pct: 30.0
+  basis: "published in-service WASP screening envelope; route-optimised peaks excluded"
+
 # ═══════════════════════════════════════════════════════════
 # 1. Flettner 旋筒帆 (Rotor Sail)
 # ═══════════════════════════════════════════════════════════

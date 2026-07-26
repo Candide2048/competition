@@ -52,7 +52,10 @@ from models.aerodynamics.suction_sail import SuctionSail
 from models.atmosphere import rho_air, relative_wind
 from models.resistance.holtrop_mennen import compute_resistance
 from models.thrust_balance import solve_balance
-from analytics.cii import CIIBaseline, compute_cii, cii_rating, cii_improvement, DEFAULT_EMISSION_FACTOR
+from analytics.cii import (
+    CIIBaseline, compute_cii, cii_rating, cii_improvement,
+    DEFAULT_EMISSION_FACTOR, DEFAULT_CII_YEAR,
+)
 from analytics.economics import initial_cost, annual_savings, payback_period, npv, sensitivity
 
 from pipelines.phase_b_full_voyage import generate_hourly_waypoints
@@ -211,7 +214,8 @@ def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,
                   cii_ship_type: str = "tanker",
                   fuel_price: float | None = None,
                   co2_price: float | None = None,
-                  cii_capacity: float | None = None):
+                  cii_capacity: float | None = None,
+                  cii_year: int = DEFAULT_CII_YEAR):
     """从单航次仿真结果计算 CII 与经济性，组装矩阵单元
 
     emission_factor: 按燃料类型的 CO₂ 排放因子（owner.fuel_type 驱动，默认 HFO/VLSFO 3.114）
@@ -230,7 +234,7 @@ def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,
     cap = cii_capacity if cii_capacity is not None else ship.DWT
     cii_bl = compute_cii(fuel_baseline_t, cap, total_nm, emission_factor)
     cii_ws = compute_cii(fuel_with_sail_t, cap, total_nm, emission_factor)
-    bl = CIIBaseline(ship_type=cii_ship_type, capacity=cap, year=2024)
+    bl = CIIBaseline(ship_type=cii_ship_type, capacity=cap, year=cii_year)
     imp = cii_improvement(cii_bl, cii_ws)
 
     cost = unit_cost * n_sails
@@ -242,8 +246,11 @@ def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,
     if co2_price is not None:
         sav_kwargs["co2_price"] = co2_price
     sav = annual_savings(annual_fuel_saved_t, annual_co2_t, **sav_kwargs)
-    pb = payback_period(cost, sav["total_savings_usd"])
-    npv_d = npv(sav["total_savings_usd"], cost, years=[10, 20])
+    # Economic KPIs and the API cashflow must share the same displayed inputs.
+    cost_usd = round(cost, 0)
+    annual_savings_usd = round(sav["total_savings_usd"], 0)
+    pb = payback_period(cost_usd, annual_savings_usd)
+    npv_d = npv(annual_savings_usd, cost_usd, years=[10, 20])
 
     return {
         "mean_wind_ms": round(sim["mean_wind_ms"], 2),
@@ -257,8 +264,8 @@ def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,
         "cii_rating_baseline": cii_rating(cii_bl, bl.required_cii),
         "cii_rating_with_sail": cii_rating(cii_ws, bl.required_cii),
         "cii_improvement_pct": round(imp, 2),
-        "initial_cost_usd": round(cost, 0),
-        "annual_savings_usd": round(sav["total_savings_usd"], 0),
+        "initial_cost_usd": cost_usd,
+        "annual_savings_usd": annual_savings_usd,
         "payback_years": round(pb, 1) if np.isfinite(pb) else None,
         "npv_10y_usd": round(npv_d[10], 0),
         "npv_20y_usd": round(npv_d[20], 0),

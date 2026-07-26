@@ -1,9 +1,8 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import SpotlightCard from './SpotlightCard'
 import CountNumber from './CountNumber'
 import { fmtInt, reduceMotion } from '../lib/format'
-import { computeCashflow, findBreakevenYear } from '../lib/cashflow'
 import { useI18n } from '../i18n'
 import type { ScenarioResult } from '../api'
 
@@ -33,13 +32,8 @@ export default function KpiGrid({ res }: { res: ScenarioResult }) {
     return () => ctx.revert()
   }, [])
 
-  // 计算 20 年累计收益（正向框架）
-  const cashflow = useMemo(
-    () => computeCashflow(cell.initial_cost_usd, cell.annual_savings_usd),
-    [cell.initial_cost_usd, cell.annual_savings_usd],
-  )
-  const profit20y = cashflow[cashflow.length - 1].cumulative
-  const breakevenYear = findBreakevenYear(cashflow)
+  const profit20y = cell.npv_20y_usd
+  const breakevenYear = cell.payback_years
 
   // 回收期 tone
   const paybackTone: Kpi['tone'] =

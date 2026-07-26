@@ -89,8 +89,8 @@ cost_sources:
       - "行业市场报告: $1-3M/台"
       - "Carjova 2025 Sustainability (同行评议, 被引): €2M 投资 + €0.1M 安装/台"
   rigid_wing:
-    range_usd: [1500000, 3000000]
-    default_usd: 2000000
+    range_usd: [3000000, 5500000]
+    default_usd: 4000000
     references:
       - "基于 Oceanbird / bound4blue 公开信息粗估，未经报价核实"
   suction_wing:

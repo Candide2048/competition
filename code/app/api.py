@@ -23,15 +23,19 @@
 import os
 import sys
 import json
+import math
 import functools
-from typing import Optional
+import glob
+import threading
+from typing import Literal, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 CODE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(CODE_DIR)
 if CODE_DIR not in sys.path:
     sys.path.insert(0, CODE_DIR)
 
@@ -44,6 +48,8 @@ import app.data_access as da  # noqa: E402
 from app.report import (  # noqa: E402
     generate_report, SAIL_LABELS, SHIP_LABELS, SEASON_LABELS,
 )
+from analytics.cii import DEFAULT_CII_YEAR  # noqa: E402
+from analytics.economics import discounted_cashflow_series  # noqa: E402
 
 SPEED_TOL = 1e-6
 STD_SFOC = 180.0
@@ -68,6 +74,9 @@ ROUTES_META = META["routes"]
 SEASONS_META = META["seasons"]
 SHIP_META = META["ship_meta"]
 SAIL_TYPES = list(META["sail_types"])
+GRID_FLETTNER_SPEC = str(META.get("flettner_spec", "24x4"))
+LIVE_DATA_AVAILABLE = bool(glob.glob(os.path.join(PROJECT_ROOT, "data", "*.nc")))
+_LIVE_SEMAPHORE = threading.BoundedSemaphore(value=1)
 
 
 @functools.lru_cache(maxsize=256)
@@ -91,10 +100,12 @@ def _to_jsonable(obj):
         return {k: _to_jsonable(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [_to_jsonable(v) for v in obj]
+    if isinstance(obj, float) and not math.isfinite(obj):
+        return None
     # numpy 标量都实现 .item()
     if hasattr(obj, "item") and not isinstance(obj, (str, bytes)):
         try:
-            return obj.item()
+            return _to_jsonable(obj.item())
         except (ValueError, AttributeError):
             return obj
     return obj
@@ -117,21 +128,34 @@ app.add_middleware(
 )
 
 
+class ShipOverrides(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    DWT: Optional[float] = Field(None, gt=0)
+    L: Optional[float] = Field(None, gt=0)
+    B: Optional[float] = Field(None, gt=0)
+    draft: Optional[float] = Field(None, gt=0)
+    C_B: Optional[float] = Field(None, gt=0, lt=1)
+
+
 class ScenarioRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     ship: str
-    speed: float = 14.0
+    speed: float = Field(14.0, ge=8.0, le=18.0)
     route: str
     season: str
     sail: str
     flettner_spec: str = "24x4"
     fuel_type: str = "VLSFO"
-    fuel_price: float = 0.60          # USD/kg
-    co2_price: float = 74.0           # EUR/tCO2
-    unit_cost: Optional[float] = None  # USD/台；None → 用帆型默认
-    sea_ratio: float = 0.742
-    sfoc: float = 180.0               # g/kWh
-    overrides: Optional[dict] = None  # 实船几何覆盖 {DWT,L,B,draft,C_B}
-    locale: str = "zh"                # 报告语言 zh|en
+    fuel_price: float = Field(0.60, gt=0, le=10.0)       # USD/kg
+    co2_price: float = Field(74.0, ge=0, le=1000.0)      # EUR/tCO2
+    unit_cost: Optional[float] = Field(None, gt=0)       # USD/台
+    sea_ratio: float = Field(0.742, gt=0, le=1)
+    sfoc: float = Field(180.0, ge=100.0, le=400.0)       # g/kWh
+    overrides: Optional[ShipOverrides] = None
+    locale: Literal["zh", "en"] = "zh"
+    cii_year: int = Field(DEFAULT_CII_YEAR, ge=2023, le=2026)
 
 
 @app.get("/api/health")
@@ -191,11 +215,19 @@ def options():
         "routes": route_options,
         "seasons": season_options,
         "speeds_kn": GRID_SPEEDS,
-        "flettner_specs": list(VALID_FLETTNER_SPECS),
+        "flettner_specs": (list(VALID_FLETTNER_SPECS) if LIVE_DATA_AVAILABLE
+                            else [GRID_FLETTNER_SPEC]),
         "flettner_unit_costs": flettner_costs,
         "fuel_types": list(VALID_FUEL_TYPES),
         "ranges": {
-            "speed": {"min": 8.0, "max": 18.0, "step": 0.5, "default": 14.0},
+            "speed": {
+                "min": 8.0 if LIVE_DATA_AVAILABLE else min(GRID_SPEEDS),
+                "max": 18.0 if LIVE_DATA_AVAILABLE else max(GRID_SPEEDS),
+                "step": 0.5 if LIVE_DATA_AVAILABLE else min(
+                    (b - a for a, b in zip(GRID_SPEEDS, GRID_SPEEDS[1:])),
+                    default=1.0),
+                "default": 14.0,
+            },
             "fuel_price": {"min": 0.30, "max": 1.00, "step": 0.01, "default": 0.60},
             "co2_price": {"min": 0.0, "max": 150.0, "step": 1.0, "default": 74.0},
             "sea_ratio": {"min": 0.40, "max": 0.95, "step": 0.001, "default": 0.742},
@@ -208,6 +240,15 @@ def options():
             "route": next(iter(ROUTES_META), None),
             "season": next(iter(SEASONS_META), None),
             "fuel_type": VALID_FUEL_TYPES[0],
+            "cii_year": DEFAULT_CII_YEAR,
+        },
+        "capabilities": {
+            "live_physics": LIVE_DATA_AVAILABLE,
+            "grid_flettner_spec": GRID_FLETTNER_SPEC,
+        },
+        "compatibility": {
+            ship: {sail: da.get_compatibility(ship, sail) for sail in SAIL_TYPES}
+            for ship in ships
         },
     }
 
@@ -221,24 +262,40 @@ def _validate_scenario(req: ScenarioRequest):
         raise HTTPException(400, f"未知航线: {req.route}")
     if req.season not in SEASONS_META:
         raise HTTPException(400, f"未知季节: {req.season}")
+    if req.flettner_spec not in VALID_FLETTNER_SPECS:
+        raise HTTPException(400, f"未知旋筒帆规格: {req.flettner_spec}")
+    if req.fuel_type not in VALID_FUEL_TYPES:
+        raise HTTPException(400, f"未知燃料类型: {req.fuel_type}")
 
 
 @app.post("/api/scenario")
 def scenario(req: ScenarioRequest):
     """单场景计算：完全复刻 dashboard.py L182-202 的 live/grid 判定与后处理。"""
     _validate_scenario(req)
-    overrides = req.overrides or None
+    overrides = (req.overrides.model_dump(exclude_none=True)
+                 if req.overrides is not None else None)
 
     speed_in_grid = any(abs(req.speed - g) < SPEED_TOL for g in GRID_SPEEDS)
-    is_live = (bool(overrides) or (not speed_in_grid)
+    spec_requires_live = (req.sail == "flettner"
+                          and req.flettner_spec != GRID_FLETTNER_SPEC)
+    is_live = (bool(overrides) or (not speed_in_grid) or spec_requires_live
                or abs(req.sfoc - STD_SFOC) > SPEED_TOL)
+
+    if is_live and not LIVE_DATA_AVAILABLE:
+        raise HTTPException(
+            503, "当前部署仅提供预计算网格；该输入需要 ERA5 live 物理重算")
 
     try:
         if is_live:
-            row = _cached_run_single(
-                req.ship, float(req.speed), req.route, req.season, req.sail,
-                req.flettner_spec, float(req.sfoc),
-                json.dumps(overrides, sort_keys=True) if overrides else "")
+            if not _LIVE_SEMAPHORE.acquire(blocking=False):
+                raise HTTPException(429, "已有 live 物理计算正在运行，请稍后重试")
+            try:
+                row = _cached_run_single(
+                    req.ship, float(req.speed), req.route, req.season, req.sail,
+                    req.flettner_spec, float(req.sfoc),
+                    json.dumps(overrides, sort_keys=True) if overrides else "")
+            finally:
+                _LIVE_SEMAPHORE.release()
             ship_meta_for_pp = {"DWT": row["dwt"],
                                 "ship_type_imo": row["ship_type_imo"],
                                 "GT": row.get("GT")}
@@ -250,14 +307,17 @@ def scenario(req: ScenarioRequest):
             speed_used, speed_exact = row["speed_used"], row["speed_exact"]
     except FileNotFoundError as e:
         raise HTTPException(503, f"live 物理重算依赖 ERA5 数据，当前不可用：{e}")
+    except HTTPException:
+        raise
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"场景计算失败：{e}")
+        raise HTTPException(500, "场景计算失败") from e
 
     cell = da.postprocess(
         row, ship=req.ship, sail=req.sail, sea_operating_ratio=req.sea_ratio,
         unit_cost_usd=req.unit_cost, flettner_spec=req.flettner_spec,
         fuel_type=req.fuel_type, fuel_price_usd_per_kg=req.fuel_price,
-        co2_price_eur_per_t=req.co2_price, ship_meta=ship_meta_for_pp)
+        co2_price_eur_per_t=req.co2_price, ship_meta=ship_meta_for_pp,
+        cii_year=req.cii_year)
 
     duration_h = float(row["duration_h"])
     trips = req.sea_ratio * HOURS_PER_YEAR / duration_h if duration_h > 0 else 0.0
@@ -277,6 +337,8 @@ def scenario(req: ScenarioRequest):
         locale=req.locale)
 
     lo, hi, refs = SAIL_BENCH_RANGE.get(req.sail, (0.0, 10.0, ""))
+    cashflow = discounted_cashflow_series(
+        float(cell["annual_savings_usd"]), float(cell["initial_cost_usd"]), 40)
 
     return {
         "cell": _to_jsonable(cell),
@@ -290,14 +352,29 @@ def scenario(req: ScenarioRequest):
         "route_waypoints": _to_jsonable(ROUTES_META[req.route]["waypoints"]),
         "unit_cost_used": unit_cost_used,
         "bench": {"lo": lo, "hi": hi, "refs": refs},
+        "cashflow": _to_jsonable(cashflow),
+        "quality": {
+            "within_benchmark": lo <= float(cell["saving_rate_pct"]) <= hi,
+            "compatibility": float(cell["compatibility"]),
+            "raw_saving_rate_pct": float(cell["physics_saving_rate_pct"]),
+            "saving_rate_pct_before_guardrail": float(
+                cell["saving_rate_pct_before_guardrail"]),
+            "screening_cap_pct": float(cell["screening_cap_pct"]),
+            "guardrail_applied": bool(cell["guardrail_applied"]),
+            "scenario_basis": "representative_voyage",
+            "cii_year": req.cii_year,
+        },
         "report_md": report_md,
     }
 
 
 @app.get("/api/matrix")
 def matrix(ship: str, route: str, season: str,
-           fuel_price: float = 0.60, co2_price: float = 74.0,
-           sea_ratio: float = 0.742, fuel_type: str = "VLSFO"):
+           fuel_price: float = Query(0.60, gt=0, le=10.0),
+           co2_price: float = Query(74.0, ge=0, le=1000.0),
+           sea_ratio: float = Query(0.742, gt=0, le=1.0),
+           fuel_type: str = "VLSFO",
+           cii_year: int = Query(DEFAULT_CII_YEAR, ge=2023, le=2026)):
     """效益矩阵：固定 船型/航线/季节，遍历 帆型 × 网格航速（纯网格路径，快）。
 
     每个帆型采用其默认单台成本（保证 payback/年节省口径一致）。
@@ -309,6 +386,8 @@ def matrix(ship: str, route: str, season: str,
         raise HTTPException(400, f"未知航线: {route}")
     if season not in SEASONS_META:
         raise HTTPException(400, f"未知季节: {season}")
+    if fuel_type not in VALID_FUEL_TYPES:
+        raise HTTPException(400, f"未知燃料类型: {fuel_type}")
 
     saving = []
     annual = []
@@ -322,7 +401,7 @@ def matrix(ship: str, route: str, season: str,
                 row, ship=ship, sail=sail, sea_operating_ratio=sea_ratio,
                 unit_cost_usd=unit_cost, fuel_type=fuel_type,
                 fuel_price_usd_per_kg=fuel_price, co2_price_eur_per_t=co2_price,
-                ship_meta=SHIP_META[ship])
+                ship_meta=SHIP_META[ship], cii_year=cii_year)
             srow.append(round(float(cell["saving_rate_pct"]), 4))
             arow.append(round(float(cell["annual_savings_usd"]), 2))
             pv = cell["payback_years"]
@@ -349,7 +428,6 @@ def matrix(ship: str, route: str, season: str,
 # 生产：挂载前端构建产物（dist/）；开发模式此目录不存在则跳过
 # ═══════════════════════════════════════════════════════════
 
-PROJECT_ROOT = os.path.dirname(CODE_DIR)
 DIST_DIR = os.path.join(PROJECT_ROOT, "web", "frontend", "dist")
 if os.path.isdir(DIST_DIR):
     app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")

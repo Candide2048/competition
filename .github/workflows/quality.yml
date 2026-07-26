@@ -1,0 +1,42 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest
+      - name: Run data-independent tests
+        working-directory: code
+        run: >-
+          python -m pytest -q
+          tests/test_analytics.py
+          tests/test_api.py
+          tests/test_flettner.py
+          tests/test_holtrop_mennen.py
+          tests/test_owner_inputs.py
+          tests/test_realtime_prices.py
+          tests/test_sail_types.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

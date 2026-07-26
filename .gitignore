@@ -26,7 +26,6 @@ ERA5*.md
 
 # 前端开发产物
 web/frontend/node_modules/
-web/frontend/package-lock.json
 web/run_dev.ps1
 
 # 开发/构建产物

@@ -15,6 +15,7 @@
 """
 import os
 import sys
+import math
 
 import pytest
 
@@ -73,6 +74,10 @@ def test_options_complete(client):
     assert set(o["ranges"]) >= {"speed", "fuel_price", "co2_price",
                                 "sea_ratio", "unit_cost", "sfoc"}
     assert o["defaults"]["ship"] in api.SHIP_META
+    assert o["defaults"]["cii_year"] == 2026
+    assert set(o["capabilities"]) == {"live_physics", "grid_flettner_spec"}
+    assert set(o["compatibility"]) == set(
+        s for s in api.VALID_SHIP_TYPES if s in api.SHIP_META)
 
 
 def test_options_flettner_costs(client):
@@ -187,6 +192,120 @@ def test_scenario_invalid_inputs_return_400(client):
         assert r.status_code == 400
 
 
+@pytest.mark.parametrize("field,value", [
+    ("fuel_price", -0.1),
+    ("co2_price", -1),
+    ("unit_cost", 0),
+    ("sea_ratio", 2),
+    ("speed", 30),
+    ("sfoc", 0),
+    ("cii_year", 2027),
+])
+def test_scenario_invalid_numeric_inputs_return_422(client, field, value):
+    r = client.post("/api/scenario", json=dict(_BASE_REQ, **{field: value}))
+    assert r.status_code == 422
+
+
+def test_scenario_invalid_fuel_and_extra_field_rejected(client):
+    assert client.post(
+        "/api/scenario", json=dict(_BASE_REQ, fuel_type="coal")
+    ).status_code == 400
+    assert client.post(
+        "/api/scenario", json=dict(_BASE_REQ, unexpected=True)
+    ).status_code == 422
+
+
+def test_incompatible_scenario_returns_finite_zero_benefit(client):
+    req = dict(_BASE_REQ, ship="container", sail="rigid_wing")
+    r = client.post("/api/scenario", json=req)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["cell"]["compatibility"] == 0
+    assert body["cell"]["saving_rate_pct"] == 0
+    assert body["cell"]["annual_savings_usd"] == 0
+    assert body["cell"]["payback_years"] is None
+
+    def assert_finite_json(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                assert_finite_json(child)
+        elif isinstance(value, list):
+            for child in value:
+                assert_finite_json(child)
+        elif isinstance(value, float):
+            assert math.isfinite(value)
+
+    assert_finite_json(body)
+
+
+def test_partial_compatibility_derates_primary_kpis(client):
+    r = client.post("/api/scenario", json=_BASE_REQ)
+    assert r.status_code == 200
+    body = r.json()
+    compat = api.da.get_compatibility(_BASE_REQ["ship"], _BASE_REQ["sail"])
+    assert 0 < compat < 1
+    assert body["cell"]["compatibility"] == compat
+    assert body["cell"]["saving_rate_pct"] == pytest.approx(
+        round(body["physics"]["saving_rate_pct"] * compat, 2), abs=0.01)
+
+
+def test_screening_guardrail_caps_owner_kpis_but_preserves_raw(client):
+    req = dict(
+        _BASE_REQ,
+        ship="mr_tanker",
+        speed=12.0,
+        route="south_china_sea",
+        season="winter",
+    )
+    body = client.post("/api/scenario", json=req).json()
+    quality = body["quality"]
+    assert quality["saving_rate_pct_before_guardrail"] > 30
+    assert quality["screening_cap_pct"] == 30
+    assert quality["guardrail_applied"] is True
+    assert body["cell"]["saving_rate_pct"] == 30
+    assert quality["raw_saving_rate_pct"] == pytest.approx(
+        body["physics"]["saving_rate_pct"])
+
+
+def test_cashflow_year_20_matches_backend_npv(client):
+    body = client.post("/api/scenario", json=_BASE_REQ).json()
+    year_20 = next(p for p in body["cashflow"] if p["year"] == 20)
+    assert year_20["cumulative"] == pytest.approx(
+        body["cell"]["npv_20y_usd"], abs=1.0)
+    assert body["quality"]["cii_year"] == 2026
+
+
+def test_nondefault_flettner_spec_requires_live(client, monkeypatch):
+    calls = []
+
+    def fake_live(ship, speed, route, season, sail, spec, sfoc, overrides):
+        calls.append(spec)
+        row = da.pick_physics(api.DF, ship, speed, route, season, sail)
+        return dict(row, dwt=api.SHIP_META[ship]["DWT"],
+                    ship_type_imo=api.SHIP_META[ship]["ship_type_imo"],
+                    GT=api.SHIP_META[ship].get("GT"))
+
+    monkeypatch.setattr(api, "LIVE_DATA_AVAILABLE", True)
+    monkeypatch.setattr(api, "_cached_run_single", fake_live)
+    req = dict(_BASE_REQ, sail="flettner", flettner_spec="20x4")
+    r = client.post("/api/scenario", json=req)
+    assert r.status_code == 200
+    assert r.json()["is_live"] is True
+    assert calls == ["20x4"]
+
+
+def test_grid_only_deployment_rejects_live_inputs(client, monkeypatch):
+    monkeypatch.setattr(api, "LIVE_DATA_AVAILABLE", False)
+    options = client.get("/api/options").json()
+    assert options["flettner_specs"] == [api.GRID_FLETTNER_SPEC]
+    assert options["ranges"]["speed"]["min"] == min(api.GRID_SPEEDS)
+    assert options["ranges"]["speed"]["max"] == max(api.GRID_SPEEDS)
+
+    r = client.post("/api/scenario", json=dict(_BASE_REQ, speed=14.5))
+    assert r.status_code == 503
+    assert "ERA5" in r.json()["detail"]
+
+
 # ═══════════════════════════════════════════════════════════
 # /api/matrix
 # ═══════════════════════════════════════════════════════════
@@ -203,6 +322,7 @@ def test_matrix_dimensions_and_values(client):
     assert len(m["saving_rate_pct"]) == len(api.SAIL_TYPES)
     assert all(len(row) == len(api.GRID_SPEEDS)
                for row in m["saving_rate_pct"])
+    assert max(v for row in m["saving_rate_pct"] for v in row) <= 30.0
 
     # 抽一格与直接 postprocess 对齐（首帆型、首航速）
     sail0 = api.SAIL_TYPES[0]

@@ -14,6 +14,7 @@
 import os
 import sys
 import json
+import functools
 
 import yaml
 import pandas as pd
@@ -30,7 +31,7 @@ from core.ship_params import (
 )
 from core.route_definition import haversine_distance, KM_TO_NM, KN_TO_MS
 from models.resistance.holtrop_mennen import compute_resistance
-from analytics.cii import EMISSION_FACTORS, SHIP_TYPE_CII_PARAMS
+from analytics.cii import EMISSION_FACTORS, SHIP_TYPE_CII_PARAMS, DEFAULT_CII_YEAR
 from pipelines.phase_b_matrix import (
     build_sail,
     sample_route_weather,
@@ -59,11 +60,10 @@ GRID_SFOC_KG_PER_KWH = 0.180
 _SAIL_CONFIG_PATH = os.path.join(CODE_DIR, "config", "sail_types.yaml")
 
 
-def _load_compatibility_matrix() -> dict:
-    """加载船型帆型兼容性矩阵 (1.0=完全兼容, 0.0=不兼容)"""
+@functools.lru_cache(maxsize=1)
+def _load_sail_config() -> dict:
     with open(_SAIL_CONFIG_PATH, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
-    return cfg.get("ship_sail_compatibility", {})
+        return yaml.safe_load(f)
 
 
 def get_compatibility(ship: str, sail: str) -> float:
@@ -72,9 +72,18 @@ def get_compatibility(ship: str, sail: str) -> float:
     Returns:
         float: 1.0=完全兼容, 0.0=不兼容, 中间值=有条件兼容
     """
-    compat = _load_compatibility_matrix()
+    compat = _load_sail_config().get("ship_sail_compatibility", {})
     ship_compat = compat.get(ship, {})
     return float(ship_compat.get(sail, 1.0))
+
+
+def get_screening_saving_cap() -> float:
+    """Return the evidence-based saving-rate guardrail used for owner KPIs."""
+    guardrails = _load_sail_config().get("screening_guardrails", {})
+    cap = float(guardrails.get("max_saving_rate_pct", 30.0))
+    if not 0.0 < cap < 100.0:
+        raise ValueError(f"节油率筛选上限 {cap} 超出 (0, 100)")
+    return cap
 
 
 # ═══════════════════════════════════════════════════════════
@@ -157,7 +166,8 @@ def postprocess(row: dict, ship: str, sail: str,
                 fuel_type: str = "VLSFO",
                 fuel_price_usd_per_kg: float = 0.6,
                 co2_price_eur_per_t: float = 74.0,
-                ship_meta: dict | None = None) -> dict:
+                ship_meta: dict | None = None,
+                cii_year: int = DEFAULT_CII_YEAR) -> dict:
     """物理 cell + 经济性标量 → evaluate_cell 矩阵单元
 
     trips_per_year 由 duration_h 与 sea_operating_ratio 换算（= ratio×8765/时长），
@@ -169,9 +179,34 @@ def postprocess(row: dict, ship: str, sail: str,
                    给定则免于重新加载船型（前端标准网格路径）
     """
     sim = to_sim_dict(row)
+    physics_saving_rate = float(sim["saving_rate_pct"])
     total_nm = float(row["distance_nm"])
     duration_h = float(row["duration_h"])
     n_sails = SAIL_INSTALL[sail]
+
+    # Compatibility is a scenario-level derating and must be applied before
+    # CII/economic post-processing so every displayed KPI uses one basis.
+    compat = get_compatibility(ship, sail)
+    if not 0.0 <= compat <= 1.0:
+        raise ValueError(f"兼容性因子 {compat} 超出 [0, 1]")
+    if compat < 1.0:
+        sim["fuel_saved_kg"] *= compat
+        sim["fuel_with_sail_kg"] = sim["fuel_baseline_kg"] - sim["fuel_saved_kg"]
+        sim["saving_rate_pct"] = (
+            sim["fuel_saved_kg"] / sim["fuel_baseline_kg"] * 100.0
+            if sim["fuel_baseline_kg"] > 0 else 0.0
+        )
+        sim["mean_thrust_kN"] *= compat
+
+    compatible_saving_rate = float(sim["saving_rate_pct"])
+    screening_cap = get_screening_saving_cap()
+    guardrail_applied = compatible_saving_rate > screening_cap
+    if guardrail_applied:
+        scale = screening_cap / compatible_saving_rate
+        sim["fuel_saved_kg"] *= scale
+        sim["fuel_with_sail_kg"] = sim["fuel_baseline_kg"] - sim["fuel_saved_kg"]
+        sim["saving_rate_pct"] = screening_cap
+        sim["mean_thrust_kN"] *= scale
 
     annual_hours = sea_operating_ratio * HOURS_PER_YEAR
     trips_per_year = annual_hours / duration_h if duration_h > 0 else 0.0
@@ -204,25 +239,18 @@ def postprocess(row: dict, ship: str, sail: str,
         fuel_price=fuel_price_usd_per_kg,
         co2_price=co2_price_eur_per_t,
         cii_capacity=ship_obj.cii_capacity,
+        cii_year=cii_year,
     )
 
-    # 添加兼容性因子（前端显示用）
-    compat = get_compatibility(ship, sail)
+    # Keep legacy adjusted fields as finite aliases of the now-adjusted result.
     result["compatibility"] = compat
     result["compatible"] = compat > 0.0
-    # 兼容性 < 1.0 时，按比例缩减效益并延长回收期
-    if 0.0 < compat < 1.0:
-        result["saving_rate_pct_adjusted"] = result.get("saving_rate_pct", 0) * compat
-        if result.get("payback_years") and result["payback_years"] != float('inf'):
-            result["payback_years_adjusted"] = result["payback_years"] / compat
-        else:
-            result["payback_years_adjusted"] = float('inf')
-    elif compat == 0.0:
-        result["saving_rate_pct_adjusted"] = 0.0
-        result["payback_years_adjusted"] = float('inf')
-    else:
-        result["saving_rate_pct_adjusted"] = result.get("saving_rate_pct", 0)
-        result["payback_years_adjusted"] = result.get("payback_years", float('inf'))
+    result["physics_saving_rate_pct"] = physics_saving_rate
+    result["saving_rate_pct_before_guardrail"] = compatible_saving_rate
+    result["screening_cap_pct"] = screening_cap
+    result["guardrail_applied"] = guardrail_applied
+    result["saving_rate_pct_adjusted"] = result.get("saving_rate_pct", 0.0)
+    result["payback_years_adjusted"] = result.get("payback_years")
 
     return result
 

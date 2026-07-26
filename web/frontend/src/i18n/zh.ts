@@ -72,6 +72,7 @@ export interface I18nKeys {
   err_scenario: string
   err_boot_fallback: string
   speed_note: (sp: string, used: string) => string
+  guardrail_note: (raw: string, cap: string) => string
   labels: Record<string, string>
   // Benchmark
   bench_range: string
@@ -179,6 +180,8 @@ const zh: I18nKeys = {
   err_scenario: '场景计算失败：',
   err_boot_fallback: '选项加载失败',
   speed_note: (sp: string, used: string) => `航速 ${sp} kn 不在标准集，已取最近邻 ${used} kn 网格值。`,
+  guardrail_note: (raw: string, cap: string) =>
+    `理想物理结果为 ${raw}%，已按实船筛选证据上限 ${cap}% 保守校准；原值保留在 API 质量字段中。`,
   // 选项标签：中文无需映射，仅季节值需要
   labels: {
     'winter': '冬季',
@@ -198,7 +201,7 @@ const zh: I18nKeys = {
   // Welcome
   welcome: '左侧面板可调节船型、航速等参数，所有图表实时联动',
   // Market Prices
-  mp_title: '实时市场数据',
+  mp_title: '最新市场参考',
   mp_refresh: '刷新行情',
   mp_fuel: 'VLSFO 油价',
   mp_co2: '碳排放配额',

@@ -59,7 +59,13 @@ export interface Options {
     route: string
     season: string
     fuel_type: string
+    cii_year: number
   }
+  capabilities: {
+    live_physics: boolean
+    grid_flettner_spec: string
+  }
+  compatibility: Record<string, Record<string, number>>
 }
 
 export interface Cell {
@@ -79,6 +85,14 @@ export interface Cell {
   payback_years: number | null
   npv_10y_usd: number
   npv_20y_usd: number
+  compatibility: number
+  compatible: boolean
+  physics_saving_rate_pct: number
+  saving_rate_pct_before_guardrail: number
+  screening_cap_pct: number
+  guardrail_applied: boolean
+  saving_rate_pct_adjusted: number
+  payback_years_adjusted: number | null
 }
 
 export interface Physics {
@@ -103,6 +117,22 @@ export interface ScenarioResult {
   unit_cost_used: number
   bench: { lo: number; hi: number; refs: string }
   report_md: string
+  cashflow: CashflowPoint[]
+  quality: {
+    within_benchmark: boolean
+    compatibility: number
+    raw_saving_rate_pct: number
+    saving_rate_pct_before_guardrail: number
+    screening_cap_pct: number
+    guardrail_applied: boolean
+    scenario_basis: string
+    cii_year: number
+  }
+}
+
+export interface CashflowPoint {
+  year: number
+  cumulative: number
 }
 
 export interface ScenarioRequest {
@@ -120,6 +150,7 @@ export interface ScenarioRequest {
   sfoc: number
   overrides: Record<string, number> | null
   locale: string
+  cii_year: number
 }
 
 export interface MatrixResult {
@@ -169,6 +200,8 @@ export function getMatrix(params: {
   fuel_price: number
   co2_price: number
   sea_ratio: number
+  fuel_type: string
+  cii_year: number
 }): Promise<MatrixResult> {
   const q = new URLSearchParams({
     ship: params.ship,
@@ -177,6 +210,8 @@ export function getMatrix(params: {
     fuel_price: String(params.fuel_price),
     co2_price: String(params.co2_price),
     sea_ratio: String(params.sea_ratio),
+    fuel_type: params.fuel_type,
+    cii_year: String(params.cii_year),
   })
   return jget<MatrixResult>(`/api/matrix?${q.toString()}`)
 }

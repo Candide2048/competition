@@ -14,6 +14,8 @@ export default function SailCompare({
   fuelPrice,
   co2Price,
   seaRatio,
+  fuelType,
+  ciiYear,
   currentSpeed,
 }: {
   ship: string
@@ -22,6 +24,8 @@ export default function SailCompare({
   fuelPrice: number
   co2Price: number
   seaRatio: number
+  fuelType: string
+  ciiYear: number
   currentSpeed: number
 }) {
   const [data, setData] = useState<MatrixResult | null>(null)
@@ -30,11 +34,20 @@ export default function SailCompare({
 
   useEffect(() => {
     let alive = true
-    getMatrix({ ship, route, season, fuel_price: fuelPrice, co2_price: co2Price, sea_ratio: seaRatio })
+    getMatrix({
+      ship,
+      route,
+      season,
+      fuel_price: fuelPrice,
+      co2_price: co2Price,
+      sea_ratio: seaRatio,
+      fuel_type: fuelType,
+      cii_year: ciiYear,
+    })
       .then((r) => { if (alive) setData(r) })
       .catch(() => {})
     return () => { alive = false }
-  }, [ship, route, season, fuelPrice, co2Price, seaRatio])
+  }, [ship, route, season, fuelPrice, co2Price, seaRatio, fuelType, ciiYear])
 
   if (!data) return null
 

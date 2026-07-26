@@ -41,6 +41,8 @@ export default function MatrixHeatmap({
   fuelPrice,
   co2Price,
   seaRatio,
+  fuelType,
+  ciiYear,
 }: {
   ship: string
   route: string
@@ -48,6 +50,8 @@ export default function MatrixHeatmap({
   fuelPrice: number
   co2Price: number
   seaRatio: number
+  fuelType: string
+  ciiYear: number
 }) {
   const [data, setData] = useState<MatrixResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -65,7 +69,16 @@ export default function MatrixHeatmap({
   useEffect(() => {
     let alive = true
     setError(null)
-    getMatrix({ ship, route, season, fuel_price: fuelPrice, co2_price: co2Price, sea_ratio: seaRatio })
+    getMatrix({
+      ship,
+      route,
+      season,
+      fuel_price: fuelPrice,
+      co2_price: co2Price,
+      sea_ratio: seaRatio,
+      fuel_type: fuelType,
+      cii_year: ciiYear,
+    })
       .then((r) => {
         if (alive) setData(r)
       })
@@ -75,7 +88,7 @@ export default function MatrixHeatmap({
     return () => {
       alive = false
     }
-  }, [ship, route, season, fuelPrice, co2Price, seaRatio])
+  }, [ship, route, season, fuelPrice, co2Price, seaRatio, fuelType, ciiYear])
 
   const grid = data ? data[metric] : null
   const { lo, hi } = useMemo(() => {
