@@ -16,7 +16,7 @@ jobs:
       - name: Ping wasp-dashboard
         shell: bash
         run: |
-          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 90 --retry 2 --retry-delay 15 https://wasp-dashboard.onrender.com/)
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 90 --retry 2 --retry-delay 15 https://competition-dugx.onrender.com/)
           echo "HTTP status: $code"
           if [[ ! "$code" =~ ^[23][0-9]{2}$ ]]; then
             echo "Service health check failed with HTTP $code"
