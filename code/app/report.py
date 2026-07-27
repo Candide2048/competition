@@ -73,6 +73,33 @@ SEASON_LABELS_EN = {
     "summer": "Summer (SW Monsoon)",
     "autumn": "Autumn (Monsoon Transition)",
 }
+# 航线中文名 → 英文名（键与 config/routes.yaml 的 name 逐字一致，值与前端 en.ts 一致）
+ROUTE_LABELS_EN = {
+    "中东→中国 (VLCC 原油, 经马六甲)": "Middle East→China (VLCC Crude, via Malacca)",
+    "霍尔木兹→斯里兰卡 (阿拉伯海区段)": "Hormuz→Sri Lanka (Arabian Sea)",
+    "斯里兰卡→马六甲 (孟加拉湾区段)": "Sri Lanka→Malacca (Bay of Bengal)",
+    "新加坡→宁波 (南海区段)": "Singapore→Ningbo (South China Sea)",
+    "阿拉伯海→苏门答腊 (赤道季风带)": "Arabian Sea→Sumatra (Equatorial Monsoon)",
+}
+SAIL_BENCHMARKS_EN = {
+    "flettner": "Norsepower MV Estraden twin rotors 6.1% measured; Maersk Pelican 2×24×4 8.2% measured",
+    "rigid_wing": "Oceanbird Wing560 single wing 7-10%; Pyxis Ocean twin wings ~14% (DNV-verified)",
+    "suction_wing": "bound4blue Pacific Sentinel ~8% average (net saving 5.5%, peaks >20%)",
+}
+SHIP_NOTES_EN = {
+    "pctc": (
+        "PCTC is the flagship WASP segment: Wallenius Wilhelmsen **Oceanbird** and "
+        "**Orcelle Wind** are both wind-assisted car-carrier flagships, whose rigid-wing "
+        "concepts target up to 60% emission cuts on ocean routes (multi-wing + weather routing). "
+        "This model echoes their rigid_wing benchmark at the Oceanbird 7-10% single-wing scale.\n\n"
+        "> ⚠️ **Honest boundary**: PCTC has high freeboard and a boxy windage area far larger "
+        "than conventional cargo ships, while this model currently **excludes hull windage "
+        "(A_T/C_X)** — a term PCTC is more sensitive to than slender tankers/bulkers. PCTC here "
+        "is an engineering-estimate representative vessel (no SIMMAN-grade public benchmark "
+        "hull), so results serve order-of-magnitude screening and cross-type comparison, "
+        "not single-ship accuracy."
+    ),
+}
 
 
 def _fmt_usd(v) -> str:
@@ -150,6 +177,7 @@ def generate_recommendation_report(*, ship: str, route_name: str, season: str,
     ship_label = (SHIP_LABELS_EN if en else SHIP_LABELS).get(ship, ship)
     season_label = (SEASON_LABELS_EN if en else SEASON_LABELS).get(season, season)
     labels = SAIL_LABELS_EN if en else SAIL_LABELS
+    route_label = ROUTE_LABELS_EN.get(route_name, route_name) if en else route_name
     by_sail = {candidate["sail"]: candidate for candidate in candidates}
     chosen_key = recommended_sail or best_candidate
     chosen = by_sail.get(chosen_key) if chosen_key else None
@@ -178,7 +206,7 @@ def generate_recommendation_report(*, ship: str, route_name: str, season: str,
         ]
         return f"""# Wind-Assisted Propulsion Recommendation Report
 
-> Scenario: {ship_label} · {route_name} · {season_label} · {speed:.1f} kn
+> Scenario: {ship_label} · {route_label} · {season_label} · {speed:.1f} kn
 
 ## Recommendation
 
@@ -256,6 +284,7 @@ def generate_report(*, ship: str, sail: str, route: str, route_name: str,
     ship_label = (SHIP_LABELS_EN if en else SHIP_LABELS).get(ship, ship)
     sail_label = (SAIL_LABELS_EN if en else SAIL_LABELS).get(sail, sail)
     season_label = (SEASON_LABELS_EN if en else SEASON_LABELS).get(season, season)
+    route_label = ROUTE_LABELS_EN.get(route_name, route_name) if en else route_name
     duration_h = float(physics["duration_h"])
     distance_nm = float(physics["distance_nm"])
     trips = sea_operating_ratio * HOURS_PER_YEAR / duration_h if duration_h > 0 else 0.0
@@ -283,11 +312,11 @@ def generate_report(*, ship: str, sail: str, route: str, route_name: str,
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    _sn = SHIP_NOTES.get(ship)
+    _sn = (SHIP_NOTES_EN if en else SHIP_NOTES).get(ship)
     _ship_note = f"\n{_sn}\n" if _sn else ""
 
     if en:
-        md = _report_en(ship_label, sail_label, sail_spec, route_name, season_label,
+        md = _report_en(ship_label, sail_label, sail_spec, route_label, season_label,
                         distance_nm, duration_h, speed_used, speed_note, n_sails,
                         cell, physics, trips, annual_fuel_saved_t, annual_co2_t,
                         initial_cost, unit_cost_usd, fuel_type, fuel_price, co2_price,
@@ -395,7 +424,7 @@ hourly ERA5 wind integration yields:
 
 This scenario’s fuel saving of **{cell['saving_rate_pct']:.2f}%** compared to published real-vessel data:
 
-> {SAIL_BENCHMARKS.get(sail, '—')}
+> {SAIL_BENCHMARKS_EN.get(sail, '—')}
 
 The model uses equal-area normalized installation for fair cross-sail-type comparison.
 Results fall within the reported range, confirming order-of-magnitude credibility.

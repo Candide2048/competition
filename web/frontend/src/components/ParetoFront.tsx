@@ -17,11 +17,13 @@ function Scatter({
   selectedId,
   npvLabel,
   co2Label,
+  L,
 }: {
   cands: ParetoCandidate[]
   selectedId: string | null
   npvLabel: string
   co2Label: string
+  L: (s: string) => string
 }) {
   const xs = cands.map((c) => c.annual_co2_reduced_t)
   const ys = cands.map((c) => c.npv_20y_usd)
@@ -89,7 +91,7 @@ function Scatter({
             )}
             <circle cx={x} cy={y} r={c.is_front ? 6 : 4.5} className={cls}>
               <title>
-                {`${c.label} @ ${c.speed_kn.toFixed(0)} kn\n${npvLabel}: ${fmtUsdCompact(c.npv_20y_usd)}\n${co2Label}: ${fmtInt(c.annual_co2_reduced_t)} t`}
+                {`${L(c.label)} @ ${c.speed_kn.toFixed(0)} kn\n${npvLabel}: ${fmtUsdCompact(c.npv_20y_usd)}\n${co2Label}: ${fmtInt(c.annual_co2_reduced_t)} t`}
               </title>
             </circle>
             <text x={x} y={y - 10} className="pareto-pt-label">
@@ -116,6 +118,7 @@ export default function ParetoFront({
   speed: number
 }) {
   const { t, locale } = useI18n()
+  const L = (s: string) => t.labels[s] || s
 
   if (loading) return <div className="card pareto-card">{t.pareto_loading}</div>
   if (error) return <div className="note">{t.pareto_err(error)}</div>
@@ -139,6 +142,7 @@ export default function ParetoFront({
         selectedId={selectedId}
         npvLabel={t.pareto_npv}
         co2Label={t.pareto_co2}
+        L={L}
       />
       <div className="pareto-table-wrap">
         <table className="pareto-table">
@@ -168,7 +172,7 @@ export default function ParetoFront({
                     : <span className="pareto-badge">{t.pareto_dominated(c.dominated_by.length)}</span>}
                 </td>
                 <td className="pareto-name">
-                  {c.label} @ {c.speed_kn.toFixed(0)} kn
+                  {L(c.label)} @ {c.speed_kn.toFixed(0)} kn
                   {c.id === selectedId && (
                     <span className="pareto-badge sel">{t.pareto_selected}</span>
                   )}

@@ -404,3 +404,17 @@ def test_matrix_invalid_ship_400(client):
     r = client.get("/api/matrix", params={
         "ship": "nope", "route": "middle_east_china", "season": "winter"})
     assert r.status_code == 400
+def test_scenario_report_en_has_no_cjk(client):
+    """en 场景报告零汉字：航线名/实船对照/pctc 注记全部走英文表"""
+    import re
+    resp = client.post("/api/scenario",
+                       json={**_BASE_REQ, "locale": "en"}).json()
+    assert not re.search(r"[\u4e00-\u9fff]", resp["report_md"])
+
+
+def test_recommendation_report_en_has_no_cjk(client):
+    """en 推荐报告零汉字（含 route_name 英文映射）"""
+    import re
+    resp = client.post("/api/recommendation",
+                       json={**_BASE_REQ, "locale": "en"}).json()
+    assert not re.search(r"[\u4e00-\u9fff]", resp["report_md"])

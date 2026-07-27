@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 # 测试数快照（离线 `pytest --collect-only -q` 统计；随测试增长手工更新）
-CI_TEST_COUNT = 260
+CI_TEST_COUNT = 262
 
 # 模型链路：每级的角色、数据/文献来源与校核方式（静态描述，可审计表达）
 MODEL_CHAIN_ZH = [
