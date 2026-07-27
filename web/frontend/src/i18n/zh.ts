@@ -141,6 +141,7 @@ export interface I18nKeys {
   sec_audit: string
   sec_audit_title: string
   audit_loading: string
+  audit_expand: string
   audit_err: (msg: string) => string
   audit_records: string
   audit_weather_years: string
@@ -168,8 +169,7 @@ export interface I18nKeys {
   wind_reason_tail: string
   wind_mean_true: string
   wind_mean_apparent: string
-  wind_effective_hours: string
-  wind_positive_thrust: string
+  wind_net_saving_hours: string
   wind_low_wind: string
   wind_speed_dist: string
   wind_angle_dist: string
@@ -209,10 +209,10 @@ const zh: I18nKeys = {
   hero_verdict: (ship: string, n: number, sail: string, saving: string, ciiFrom: string, ciiTo: string, payback: string) =>
     `为 ${ship} 加装 ${n} 台${sail}，节油 ${saving}%，${ciiFrom === ciiTo ? `CII 维持 ${ciiTo}` : `CII ${ciiFrom}→${ciiTo}`}，回收 ${payback}。`,
   hero_rec_install: (ship: string, n: number, sail: string, saving: string, payback: string, npv: string) =>
-    `综合全部兼容方案，建议为 ${ship} 安装 ${n} 台${sail}：节油 ${saving}%，回收 ${payback}，20 年净现值 ${npv}。`,
+    `建议为 ${ship} 安装 ${n} 台${sail}：预计节油 ${saving}%，回收期 ${payback}，20 年净现值 ${npv}。`,
   hero_rec_no_install: (ship: string, sail: string) =>
-    `${ship} 在当前假设下不建议安装风帆；相对最优候选为${sail}。`,
-  hero_rec_loading: (ship: string) => `正在为 ${ship} 比较全部兼容帆型并生成建议…`,
+    `当前假设下，暂不建议为 ${ship} 安装${sail}；请先复核成本、航线与运营约束。`,
+  hero_rec_loading: (ship: string) => `正在生成 ${ship} 的改装建议…`,
   hero_compared: (count: number) => `已比较 ${count} 种兼容帆型`,
   decision_state_positive: '建议进入方案深化',
   decision_state_conditional: '有条件可行，需进一步验证',
@@ -369,6 +369,7 @@ const zh: I18nKeys = {
   sec_audit: '模型审计',
   sec_audit_title: '打开黑箱：模型链路、护栏与已知限制',
   audit_loading: '正在加载审计信息…',
+  audit_expand: '模型方法、护栏与复现信息（点击展开）',
   audit_err: (msg: string) => `审计信息加载失败：${msg}`,
   audit_records: '物理网格记录',
   audit_weather_years: 'ERA5 天气年份',
@@ -397,13 +398,12 @@ const zh: I18nKeys = {
   wind_reason_tail: '顺风占主导，推力窗口充足',
   wind_mean_true: '平均真风速',
   wind_mean_apparent: '平均视风速',
-  wind_effective_hours: '有效风时占比',
-  wind_positive_thrust: '正推力小时占比',
+  wind_net_saving_hours: '净节油贡献小时占比（>2%）',
   wind_low_wind: '低风（<3 m/s）占比',
   wind_speed_dist: '真风速分布',
   wind_angle_dist: '相对风角分布（0°=顶风 · 180°=顺风）',
   wind_basis: (years: string) =>
-    `统计基础：ERA5 ${years} 逐小时风场 · 与节油物理同一次航次模拟采样，口径一致`,
+    `统计基础：ERA5 ${years} 逐小时风场 · 与节油物理同一次航次模拟采样，口径一致；净节油贡献 = 逐时净节油率＞2% 的小时占比（已扣除转子电耗）`,
   // Benchmark
   bench_range: '实船报道区间',
   // Matrix

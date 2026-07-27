@@ -7,7 +7,7 @@
 每条 record 对应 physics_grid 的一格（船型×航速×航线×季节×帆型），含:
     uncertainty    24h circular block bootstrap 分位数摘要
                    （analytics.uncertainty.summarize_bootstrap_hourly）
-    wind_resource  风速/相对风角分布与有效推力小时占比
+    wind_resource  风速/相对风角分布与净节油贡献小时占比
                    （analytics.wind_resource.summarize_wind_resource）
 
 计算分层（与 precompute_grid 一致）:
@@ -176,7 +176,7 @@ def compute_scenario_insights(ships=VALID_SHIP_TYPES,
             "note": ("摘要基于单年（2025）ERA5 沿航线逐小时采样的 bootstrap，"
                      "量化日间风场组合不确定性，不覆盖年际气候变率。"
                      "物理口径与 physics_grid.json 完全同源（simulate_voyage）。"
-                     "经济性分位数由 API 按当前油价/碳价/成本实时后处理。"),
+                     "经济性分位数由 API 按当前油价/碳价/成本实时后处理。风资源适配判级基于净节油贡献小时占比（逐时净节油率＞2% 的小时占比，已扣除转子/风扇电耗）。"),
         },
         "records": records,
     }

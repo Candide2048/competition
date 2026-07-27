@@ -415,8 +415,7 @@ export function getAudit(): Promise<AuditResult> {
 export interface WindResourceSummary {
   mean_true_wind_ms: number
   mean_apparent_wind_ms: number
-  effective_hours_pct: number
-  positive_thrust_hours_pct: number
+  net_saving_contribution_hours_pct: number
   low_wind_hours_pct: number
   headwind_hours_pct: number
   beam_reach_hours_pct: number

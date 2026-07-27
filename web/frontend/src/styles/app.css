@@ -363,7 +363,8 @@ input[type='range']::-moz-range-thumb {
   line-height: 1.2;
   letter-spacing: -0.02em;
   margin: 0 0 26px;
-  max-width: 26ch;
+  width: 100%;
+  max-width: 100%;
   color: var(--text);
 }
 .decision-state {
@@ -1730,4 +1731,34 @@ input[type='range']::-moz-range-thumb {
   .wind-card {
     padding: 18px 14px;
   }
+}
+
+/* ══════════════ 审计折叠面板（details/summary） ══════════════ */
+details.audit-card > summary.audit-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  user-select: none;
+}
+details.audit-card > summary.audit-summary::-webkit-details-marker {
+  display: none;
+}
+details.audit-card > summary.audit-summary::before {
+  content: '▸';
+  color: var(--accent);
+  transition: transform 0.2s ease;
+}
+details.audit-card[open] > summary.audit-summary::before {
+  transform: rotate(90deg);
+}
+details.audit-card > summary.audit-summary:hover,
+details.audit-card > summary.audit-summary:focus-visible {
+  color: var(--text);
+}
+details.audit-card[open] > summary.audit-summary {
+  margin-bottom: 18px;
 }

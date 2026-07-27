@@ -32,11 +32,12 @@ class TestWindResourceApi:
         assert d["speed_used"] == 14.0
         s = d["summary"]
         for k in ("mean_true_wind_ms", "mean_apparent_wind_ms",
-                  "effective_hours_pct", "positive_thrust_hours_pct",
+                  "net_saving_contribution_hours_pct",
                   "low_wind_hours_pct", "headwind_hours_pct",
                   "beam_reach_hours_pct", "tailwind_hours_pct",
                   "wind_speed_hist", "relative_angle_hist"):
             assert k in s, f"summary 缺少 {k}"
+        assert 0.0 <= s["net_saving_contribution_hours_pct"] <= 100.0
         # 直方图占比总和约 100（全零除外）
         assert abs(sum(s["wind_speed_hist"]["pct"]) - 100.0) < 1.0
         assert abs(sum(s["relative_angle_hist"]["pct"]) - 100.0) < 1.0

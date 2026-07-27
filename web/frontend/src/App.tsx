@@ -189,23 +189,6 @@ export default function App() {
 
             <hr className="divider" />
 
-            {/* Pareto 决策前沿 */}
-            <Reveal>
-              <div className="section-header">
-                <span className="eyebrow">{t.sec_pareto}</span>
-                <h2 className="section-title">{t.sec_pareto_title}</h2>
-              </div>
-              <ParetoFront
-                data={pareto}
-                loading={paretoLoading}
-                error={paretoError}
-                selectedSail={req.sail}
-                speed={req.speed}
-              />
-            </Reveal>
-
-            <hr className="divider" />
-
             {/* 用户选中的单帆型详细场景 */}
             <Reveal>
               <div id="detail-analysis" className="detail-context">
@@ -233,21 +216,6 @@ export default function App() {
                 </div>
               )}
               <KpiGrid res={data} />
-            </Reveal>
-
-            <hr className="divider" />
-
-            {/* 不确定性区间 P10/P50/P90 */}
-            <Reveal>
-              <div className="section-header">
-                <span className="eyebrow">{t.sec_unc}</span>
-                <h2 className="section-title">{t.sec_unc_title}</h2>
-              </div>
-              <UncertaintyBand
-                data={uncertainty}
-                loading={uncertaintyLoading}
-                error={uncertaintyError}
-              />
             </Reveal>
 
             <hr className="divider" />
@@ -282,6 +250,36 @@ export default function App() {
 
             <hr className="divider" />
 
+            {/* 不确定性区间 P10/P50/P90 */}
+            <Reveal>
+              <div className="section-header">
+                <span className="eyebrow">{t.sec_unc}</span>
+                <h2 className="section-title">{t.sec_unc_title}</h2>
+              </div>
+              <UncertaintyBand
+                data={uncertainty}
+                loading={uncertaintyLoading}
+                error={uncertaintyError}
+              />
+            </Reveal>
+
+            <hr className="divider" />
+
+            {/* 风资源适配解释 */}
+            <Reveal>
+              <div className="section-header">
+                <span className="eyebrow">{t.sec_wind}</span>
+                <h2 className="section-title">{t.sec_wind_title}</h2>
+              </div>
+              <WindResourcePanel
+                data={windResource}
+                loading={windResourceLoading}
+                error={windResourceError}
+              />
+            </Reveal>
+
+            <hr className="divider" />
+
             {/* 实船报道对照 */}
             <Reveal>
               <div className="section-header">
@@ -298,13 +296,19 @@ export default function App() {
 
             <hr className="divider" />
 
-            {/* 模型可信度审计 */}
+            {/* Pareto 决策前沿 */}
             <Reveal>
               <div className="section-header">
-                <span className="eyebrow">{t.sec_audit}</span>
-                <h2 className="section-title">{t.sec_audit_title}</h2>
+                <span className="eyebrow">{t.sec_pareto}</span>
+                <h2 className="section-title">{t.sec_pareto_title}</h2>
               </div>
-              <AuditPanel />
+              <ParetoFront
+                data={pareto}
+                loading={paretoLoading}
+                error={paretoError}
+                selectedSail={req.sail}
+                speed={req.speed}
+              />
             </Reveal>
 
             <hr className="divider" />
@@ -324,21 +328,6 @@ export default function App() {
                 seaRatio={req.sea_ratio}
                 fuelType={req.fuel_type}
                 ciiYear={req.cii_year}
-              />
-            </Reveal>
-
-            <hr className="divider" />
-
-            {/* 风资源适配解释 */}
-            <Reveal>
-              <div className="section-header">
-                <span className="eyebrow">{t.sec_wind}</span>
-                <h2 className="section-title">{t.sec_wind_title}</h2>
-              </div>
-              <WindResourcePanel
-                data={windResource}
-                loading={windResourceLoading}
-                error={windResourceError}
               />
             </Reveal>
 
@@ -369,6 +358,17 @@ export default function App() {
                 <h2 className="section-title">{t.sec_report_title}</h2>
               </div>
               <ReportPanel md={recommendation?.report_md ?? data.report_md} />
+            </Reveal>
+
+            <hr className="divider" />
+
+            {/* 模型可信度审计（默认折叠，评委需要时展开） */}
+            <Reveal>
+              <div className="section-header">
+                <span className="eyebrow">{t.sec_audit}</span>
+                <h2 className="section-title">{t.sec_audit_title}</h2>
+              </div>
+              <AuditPanel />
             </Reveal>
           </>
         )}

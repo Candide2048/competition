@@ -79,12 +79,8 @@ export default function WindResourcePanel({
           <span>{t.wind_mean_apparent}</span>
         </div>
         <div className="wind-stat">
-          <b>{s.effective_hours_pct.toFixed(1)}%</b>
-          <span>{t.wind_effective_hours}</span>
-        </div>
-        <div className="wind-stat">
-          <b>{s.positive_thrust_hours_pct.toFixed(1)}%</b>
-          <span>{t.wind_positive_thrust}</span>
+          <b>{s.net_saving_contribution_hours_pct.toFixed(1)}%</b>
+          <span>{t.wind_net_saving_hours}</span>
         </div>
         <div className="wind-stat">
           <b>{s.low_wind_hours_pct.toFixed(1)}%</b>

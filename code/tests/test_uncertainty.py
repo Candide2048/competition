@@ -124,8 +124,8 @@ class TestWindResource:
             "true_wind_ms": np.zeros(n),
             "apparent_wind_ms": np.zeros(n),
             "relative_wind_angle_deg": np.zeros(n),
-            "thrust_kN": np.zeros(n),
-            "effective": np.zeros(n, dtype=bool),
+            "fuel_baseline_kg_h": np.full(n, 3000.0),
+            "fuel_saved_kg_h": np.zeros(n),
         }
         s = summarize_wind_resource(h)
         assert s["interpretation"]["fit_level"] == "poor"
@@ -134,9 +134,29 @@ class TestWindResource:
     def test_empty_raises(self):
         h = {k: np.array([]) for k in (
             "true_wind_ms", "apparent_wind_ms", "relative_wind_angle_deg",
-            "thrust_kN", "effective")}
+            "fuel_baseline_kg_h", "fuel_saved_kg_h")}
         with pytest.raises(ValueError):
             summarize_wind_resource(h)
+
+    def test_fit_level_thresholds(self):
+        # 判级边界：净节油贡献占比 39/40/69/70 → poor/medium/medium/good
+        def _fit(contrib_pct):
+            n = 100
+            saved = np.zeros(n)
+            saved[:contrib_pct] = 150.0  # 节油率 5%，> 2% 阈值
+            h = {
+                "true_wind_ms": np.full(n, 8.0),  # 避开 low_wind 主因
+                "apparent_wind_ms": np.full(n, 10.0),
+                "relative_wind_angle_deg": np.full(n, 90.0),
+                "fuel_baseline_kg_h": np.full(n, 3000.0),
+                "fuel_saved_kg_h": saved,
+            }
+            return summarize_wind_resource(h)["interpretation"]["fit_level"]
+
+        assert _fit(39) == "poor"
+        assert _fit(40) == "medium"
+        assert _fit(69) == "medium"
+        assert _fit(70) == "good"
 
 
 # ── data_access: insights 查表 + 不确定性后处理 ─────────────

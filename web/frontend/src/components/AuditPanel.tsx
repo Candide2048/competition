@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useI18n } from '../i18n'
 import { useAudit } from '../hooks/useAudit'
 import { fmtInt } from '../lib/format'
@@ -9,19 +10,20 @@ const SAIL_NAMES: Record<string, string> = {
   suction_wing: '吸力翼帆',
 }
 
-export default function AuditPanel() {
+/** 审计正文：仅在用户首次展开后挂载，才发起 /api/audit 请求 */
+function AuditContent() {
   const { t } = useI18n()
   const { data, error } = useAudit()
 
   if (error) return <div className="note">{t.audit_err(error)}</div>
-  if (!data) return <div className="card audit-card">{t.audit_loading}</div>
+  if (!data) return <p className="hint">{t.audit_loading}</p>
 
   const cov = data.coverage
   const g = data.guardrails
   const rep = data.reproducibility
 
   return (
-    <div className="card audit-card">
+    <>
       {/* 覆盖统计 */}
       <div className="audit-stats">
         <div className="audit-stat">
@@ -103,6 +105,24 @@ export default function AuditPanel() {
         </li>
         {rep.dockerized && <li>{t.audit_docker}</li>}
       </ul>
-    </div>
+    </>
+  )
+}
+
+/** 折叠式审计面板：默认收起，评委需要时点开；正文懒加载 */
+export default function AuditPanel() {
+  const { t } = useI18n()
+  const [openedOnce, setOpenedOnce] = useState(false)
+
+  return (
+    <details
+      className="card audit-card"
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) setOpenedOnce(true)
+      }}
+    >
+      <summary className="audit-summary">{t.audit_expand}</summary>
+      {openedOnce && <AuditContent />}
+    </details>
   )
 }

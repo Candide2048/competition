@@ -7,10 +7,10 @@ const en: I18nKeys = {
   hero_verdict: (ship, n, sail, saving, ciiFrom, ciiTo, payback) =>
     `Install ${n} ${sail} on ${ship}: fuel saving ${saving}%, ${ciiFrom === ciiTo ? `CII remains ${ciiTo}` : `CII ${ciiFrom}→${ciiTo}`}, payback ${payback}.`,
   hero_rec_install: (ship, n, sail, saving, payback, npv) =>
-    `After comparing all compatible options, install ${n} ${sail} on ${ship}: fuel saving ${saving}%, payback ${payback}, 20-year NPV ${npv}.`,
+    `Recommendation for ${ship}: ${n} × ${sail}, with estimated fuel saving of ${saving}%, payback of ${payback}, and 20-year NPV of ${npv}.`,
   hero_rec_no_install: (ship, sail) =>
-    `Do not install wind-assist on ${ship} under the current assumptions; ${sail} is the strongest candidate.`,
-  hero_rec_loading: (ship) => `Comparing every compatible sail option for ${ship}…`,
+    `Installing ${sail} on ${ship} is not recommended under the current assumptions; review cost, route, and operating constraints first.`,
+  hero_rec_loading: (ship) => `Preparing the retrofit recommendation for ${ship}…`,
   hero_compared: (count) => `${count} compatible sail types compared`,
   decision_state_positive: 'Proceed to detailed assessment',
   decision_state_conditional: 'Conditionally viable — validation required',
@@ -184,6 +184,7 @@ const en: I18nKeys = {
   sec_audit: 'Model Audit',
   sec_audit_title: 'Opening the black box: model chain, guardrails & known limits',
   audit_loading: 'Loading audit info…',
+  audit_expand: 'Model methodology, guardrails & reproducibility (click to expand)',
   audit_err: (msg: string) => `Audit info failed to load: ${msg}`,
   audit_records: 'Physics grid records',
   audit_weather_years: 'ERA5 weather years',
@@ -212,13 +213,12 @@ const en: I18nKeys = {
   wind_reason_tail: 'Tailwind dominant — ample thrust window',
   wind_mean_true: 'Mean true wind',
   wind_mean_apparent: 'Mean apparent wind',
-  wind_effective_hours: 'Effective wind hours',
-  wind_positive_thrust: 'Positive-thrust hours',
+  wind_net_saving_hours: 'Net-saving hours (>2%)',
   wind_low_wind: 'Low wind (<3 m/s)',
   wind_speed_dist: 'True wind speed distribution',
   wind_angle_dist: 'Relative wind angle (0°=head · 180°=tail)',
   wind_basis: (years: string) =>
-    `Basis: ERA5 ${years} hourly winds · sampled in the same voyage simulation as the fuel-saving physics`,
+    `Basis: ERA5 ${years} hourly winds · sampled in the same voyage simulation as the fuel-saving physics; net-saving hours = share of hours with net saving rate >2% (rotor power deducted)`,
   bench_range: 'Ship report range',
   matrix_saving: 'Fuel Saving %',
   matrix_annual: 'Annual Savings $',
