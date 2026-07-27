@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 1000 1500" width="1000" height="1500">
+  <defs>
+    <marker id="arrow-navy" markerWidth="10" markerHeight="8"
+            refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0,0 10,4 0,8" fill="#2C3E50"/>
+    </marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="8"
+            refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0,0 10,4 0,8" fill="#00897B"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="8" markerHeight="6"
+            refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0,0 8,3 0,6" fill="#78909C"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="1500" fill="#FFFFFF"/>
+
+  <!-- ===== TIER 1: Data Foundation ===== -->
+    <rect x="50" y="50" width="840" height="270" rx="6"
+          fill="#F5F7FA" stroke="#2C3E50" stroke-width="1"/>
+
+    <rect x="50" y="50" width="140" height="32" rx="4"
+          fill="#00897B" stroke="none"/>
+    <text x="120" y="71" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#FFFFFF">数据基础层</text>
+
+    <text x="470" y="125" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="24" font-weight="bold"
+          fill="#2C3E50">ERA5 气候再分析数据引擎</text>
+    <text x="470" y="160" text-anchor="middle"
+          font-family="'Consolas', 'Courier New', monospace" font-size="14"
+          fill="#555555">0.25° × 逐时 × 30°E–130°E | u10, v10, SST | 2025全年</text>
+    <line x1="130" y1="215" x2="810" y2="215"
+          stroke="#78909C" stroke-width="1"/>
+    <circle cx="130" cy="215" r="5" fill="#00897B" stroke="#2C3E50" stroke-width="0.5"/>
+    <circle cx="300" cy="215" r="5" fill="#00897B" stroke="#2C3E50" stroke-width="0.5"/>
+    <circle cx="470" cy="215" r="5" fill="#00897B" stroke="#2C3E50" stroke-width="0.5"/>
+    <circle cx="640" cy="215" r="5" fill="#00897B" stroke="#2C3E50" stroke-width="0.5"/>
+    <circle cx="810" cy="215" r="5" fill="#00897B" stroke="#2C3E50" stroke-width="0.5"/>
+    <text x="130" y="243" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="12"
+          fill="#666666">中东→中国</text>
+    <text x="300" y="243" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="12"
+          fill="#666666">阿拉伯海</text>
+    <text x="470" y="243" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="12"
+          fill="#666666">孟加拉湾</text>
+    <text x="640" y="243" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="12"
+          fill="#666666">南海</text>
+    <text x="810" y="243" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="12"
+          fill="#666666">印度洋</text>
+
+  <!-- ===== Arrow: Tier 1 → Tier 2 ===== -->
+    <line x1="470" y1="320" x2="470" y2="375"
+          stroke="#2C3E50" stroke-width="1.5" marker-end="url(#arrow-navy)"/>
+  <!-- ===== TIER 2: Computation Core ===== -->
+    <rect x="50" y="380" width="840" height="600" rx="6"
+          fill="#F5F7FA" stroke="#2C3E50" stroke-width="1"/>
+
+    <rect x="50" y="380" width="140" height="32" rx="4"
+          fill="#00897B" stroke="none"/>
+    <text x="120" y="401" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#FFFFFF">计算核心层</text>
+
+    <rect x="80" y="440" width="240" height="440" rx="4"
+          fill="#FFFFFF" stroke="#2C3E50" stroke-width="1"/>
+    <text x="200" y="478" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="18" font-weight="bold"
+          fill="#2C3E50">船舶阻力</text>
+    <line x1="100" y1="492" x2="300" y2="492"
+          stroke="#78909C" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="200" y="530" text-anchor="middle"
+          font-family="'Consolas', 'Courier New', monospace" font-size="13"
+          fill="#333333">Holtrop-Mennen (1984)</text>
+    <text x="200" y="562" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="13"
+          fill="#333333">5 SIMMAN 标准船型</text>
+    <text x="200" y="594" text-anchor="middle"
+          font-family="'Consolas', 'Courier New', monospace" font-size="13"
+          fill="#333333">R_T = f(V, trim, sea state)</text>
+
+    <rect x="350" y="440" width="240" height="440" rx="4"
+          fill="#FFFFFF" stroke="#2C3E50" stroke-width="1"/>
+    <text x="470" y="478" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="18" font-weight="bold"
+          fill="#2C3E50">帆型气动力</text>
+    <line x1="370" y1="492" x2="570" y2="492"
+          stroke="#78909C" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="470" y="530" text-anchor="middle"
+          font-family="'Consolas', 'Courier New', monospace" font-size="13"
+          fill="#333333">Flettner: C_L(SR, α)</text>
+    <text x="470" y="562" text-anchor="middle"
+          font-family="'Consolas', 'Courier New', monospace" font-size="13"
+          fill="#333333">硬质翼帆: C_L(AoA)</text>
+    <text x="470" y="594" text-anchor="middle"
+          font-family="'Consolas', 'Courier New', monospace" font-size="13"
+          fill="#333333">吸力帆: polar curve</text>
+
+    <rect x="620" y="440" width="240" height="440" rx="4"
+          fill="#FFFFFF" stroke="#00897B" stroke-width="1.5"/>
+    <text x="740" y="478" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="18" font-weight="bold"
+          fill="#00897B">系统集成</text>
+    <line x1="640" y1="492" x2="840" y2="492"
+          stroke="#78909C" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="740" y="530" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="13"
+          fill="#333333">推力平衡方程</text>
+    <text x="740" y="562" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="13"
+          fill="#333333">寄生功率扣除</text>
+    <text x="740" y="594" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="13"
+          fill="#333333">ΔP_fuel 逐时步计算</text>
+
+    <line x1="590" y1="660" x2="618" y2="660"
+          stroke="#2C3E50" stroke-width="1" marker-end="url(#arrow-navy)"/>
+    <polyline points="320,780 335,780 335,910 605,910 605,660 618,660"
+          fill="none" stroke="#2C3E50" stroke-width="1" marker-end="url(#arrow-navy)"/>
+
+  <!-- ===== Arrow: Tier 2 → Tier 3 ===== -->
+    <line x1="470" y1="980" x2="470" y2="1035"
+          stroke="#2C3E50" stroke-width="1.5" marker-end="url(#arrow-navy)"/>
+  <!-- ===== TIER 3: Decision Analysis ===== -->
+    <rect x="50" y="1040" width="840" height="380" rx="6"
+          fill="#F5F7FA" stroke="#2C3E50" stroke-width="1"/>
+
+    <rect x="50" y="1040" width="140" height="32" rx="4"
+          fill="#00897B" stroke="none"/>
+    <text x="120" y="1061" text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#FFFFFF">决策分析层</text>
+
+    <text x="120" y="1110" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#2C3E50">节油矩阵 [%]</text>
+    <line x1="300" y1="1106" x2="480" y2="1106"
+          stroke="#2C3E50" stroke-width="1" marker-end="url(#arrow-navy)"/>
+    <text x="510" y="1110" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="14"
+          fill="#666666">900 组情景</text>
+    <text x="120" y="1180" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#2C3E50">CII 评级变化 [A→E]</text>
+    <line x1="300" y1="1176" x2="480" y2="1176"
+          stroke="#2C3E50" stroke-width="1" marker-end="url(#arrow-navy)"/>
+    <text x="510" y="1180" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="14"
+          fill="#666666">MEPC.353(78) 基线</text>
+    <text x="120" y="1250" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#2C3E50">NPV [USD]</text>
+    <line x1="300" y1="1246" x2="480" y2="1246"
+          stroke="#2C3E50" stroke-width="1" marker-end="url(#arrow-navy)"/>
+    <text x="510" y="1250" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="14"
+          fill="#666666">燃油 + EU ETS @ €74/t</text>
+    <text x="120" y="1320" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="15" font-weight="bold"
+          fill="#2C3E50">回收期 [年]</text>
+    <line x1="300" y1="1316" x2="480" y2="1316"
+          stroke="#2C3E50" stroke-width="1" marker-end="url(#arrow-navy)"/>
+    <text x="510" y="1320" text-anchor="start"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="14"
+          fill="#666666">CAPEX vs. 年节省额</text>
+
+  <!-- ===== Lateral Annotation Bar ===== -->
+    <rect x="915" y="50" width="30" height="1370"
+          fill="#CFD8DC" stroke="#78909C" stroke-width="0.5" rx="3"/>
+    <text x="930" y="735"
+          text-anchor="middle"
+          font-family="'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif" font-size="14"
+          fill="#546E7A"
+          transform="rotate(-90, 930, 735)">船东输入: DWT · 航速 · 燃油类型 · 碳价 · 运营天数</text>
+
+</svg>
