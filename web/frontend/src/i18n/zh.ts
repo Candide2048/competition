@@ -238,10 +238,10 @@ const zh: I18nKeys = {
   sec_cashflow: '投资回报',
   sec_cashflow_title: '累计净现金流（含贴现）',
   sec_cii: 'IMO合规',
-  sec_cii_title: 'CII 评级跃迁 · 避免合规罚款',
+  sec_cii_title: 'CII 评级跃迁 · 降低合规风险',
   sec_sail: '方案推荐',
   sec_sail_title: '同参数帆型推荐与经济性对比',
-  sec_bench: '实船校验',
+  sec_bench: '案例对照',
   sec_bench_title: '节油率 vs 公开报道区间',
   sec_matrix: '全景矩阵',
   sec_matrix_title: '帆型 × 航速 效益热力图',
@@ -253,7 +253,7 @@ const zh: I18nKeys = {
   kpi_payback_unrecoverable: '不可回收',
   kpi_payback_foot: (cost: string) => `初始投资 $${cost}`,
   kpi_annual: '年净节省',
-  kpi_annual_foot: (trips: string) => `${trips} 航次/年 · 含碳价收益`,
+  kpi_annual_foot: (trips: string) => `${trips} 航次/年 · 含影子碳价收益`,
   kpi_saving: '节油率',
   kpi_saving_foot: (t: string) => `单航次节油 ${t} t`,
   kpi_profit: '20年净现值',
@@ -272,7 +272,7 @@ const zh: I18nKeys = {
   cf_warn: '⚠ 当前参数下 40 年内未回本，建议提高海上作业比例或选择风力更优航线',
   // CII
   cii_improve: (pct: string) => `碳强度改善 ${pct}%`,
-  cii_penalty: (k: string) => `避免约 $${k}K/年 合规附加成本`,
+  cii_penalty: (k: string) => `降低约 $${k}K/年 合规成本风险（影子碳价估算）`,
   // Sail compare
   sail_payback: '回收期',
   sail_saving: '节油率',
@@ -305,7 +305,7 @@ const zh: I18nKeys = {
   sb_econ: '经济性参数',
   sb_fuel_type: '燃料类型',
   sb_fuel_price: '燃油价 (USD/kg)',
-  sb_co2_price: '碳价 (EUR/tCO₂)',
+  sb_co2_price: '影子碳价 (EUR/tCO₂)',
   sb_unit_cost: '单台成本 (USD)',
   sb_sea_ratio: '海上作业比例',
   sb_sfoc: 'SFOC (g/kWh)',
@@ -328,6 +328,10 @@ const zh: I18nKeys = {
     `理想物理结果为 ${raw}%，已按实船筛选证据上限 ${cap}% 保守校准；原值保留在 API 质量字段中。`,
   // 选项标签：中文无需映射，仅季节值需要
   labels: {
+    // 帆型稳定键（后端 benchmark_ranges key）
+    'flettner': 'Flettner 旋筒帆',
+    'rigid_wing': '刚性翼帆',
+    'suction_wing': '吸力帆',
     'winter': '冬季',
     'spring': '春季',
     'summer': '夏季',
@@ -347,7 +351,7 @@ const zh: I18nKeys = {
     `保守 ${p10} · 中位 ${p50} · 乐观 ${p90}`,
   unc_risk_fuel: '节油为正概率',
   unc_risk_npv: '20 年 NPV 为正概率',
-  unc_risk_bench: '落于实船区间概率',
+  unc_risk_bench: '落于公开案例区间概率',
   unc_basis: (years: string, n: number, block: number) =>
     `方法：ERA5 ${years} 逐小时风场 · ${block}h 环块自助法 ${n} 次重采样 · 经济性随油价/碳价滑杆实时联动，与主 KPI 同口径`,
   // Pareto 决策前沿
@@ -378,7 +382,7 @@ const zh: I18nKeys = {
   audit_tests: '自动化测试',
   audit_seed: 'bootstrap 随机种子',
   audit_model_chain: '模型链路：数据源 → KPI 逐级可溯源',
-  audit_guardrails: '护栏与实船对照',
+  audit_guardrails: '护栏与公开案例对照',
   audit_cap: '节油率筛查上限',
   audit_limitations: '已知限制（诚实呈现）',
   audit_repro: '可复现性',
@@ -405,7 +409,7 @@ const zh: I18nKeys = {
   wind_basis: (years: string) =>
     `统计基础：ERA5 ${years} 逐小时风场 · 与节油物理同一次航次模拟采样，口径一致；净节油贡献 = 逐时净节油率＞2% 的小时占比（已扣除转子电耗）`,
   // Benchmark
-  bench_range: '实船报道区间',
+  bench_range: '公开案例参考范围',
   // Matrix
   matrix_saving: '节油率 %',
   matrix_annual: '年净节省 $',

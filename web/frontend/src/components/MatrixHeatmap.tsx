@@ -129,10 +129,14 @@ export default function MatrixHeatmap({
         </div>
         <span className="matrix-sub">{L(data.route_name)} · {L(season)}</span>
       </div>
-      <div
-        className="matrix-grid"
-        style={{ gridTemplateColumns: `160px repeat(${data.speeds.length}, 1fr)` }}
-      >
+      <div className="matrix-scroll" tabIndex={0} aria-label={t.sec_matrix_title}>
+        <div
+          className="matrix-grid"
+          style={{
+            gridTemplateColumns: `minmax(120px, 160px) repeat(${data.speeds.length}, minmax(72px, 1fr))`,
+            minWidth: 120 + data.speeds.length * 76,
+          }}
+        >
         <div className="matrix-corner">{t.matrix_corner}</div>
         {data.speeds.map((sp) => (
           <div key={sp} className="matrix-colhead num">{sp} kn</div>
@@ -147,6 +151,7 @@ export default function MatrixHeatmap({
             theme={theme}
           />
         ))}
+        </div>
       </div>
     </div>
   )

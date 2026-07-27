@@ -288,12 +288,19 @@ def scenario(req: ScenarioRequest):
 
     if is_live and not LIVE_DATA_AVAILABLE:
         raise HTTPException(
-            503, "当前部署仅提供预计算网格；该输入需要 ERA5 live 物理重算")
+            503, "当前部署仅提供预计算网格；该输入需要 ERA5 live 物理重算"
+            if req.locale == "zh" else
+            "This deployment serves the precomputed grid only; "
+            "this input requires an ERA5 live physics rerun")
 
     try:
         if is_live:
             if not _LIVE_SEMAPHORE.acquire(blocking=False):
-                raise HTTPException(429, "已有 live 物理计算正在运行，请稍后重试")
+                raise HTTPException(
+                    429, "已有 live 物理计算正在运行，请稍后重试"
+                    if req.locale == "zh" else
+                    "A live physics run is already in progress; "
+                    "please retry shortly")
             try:
                 row = _cached_run_single(
                     req.ship, float(req.speed), req.route, req.season, req.sail,
@@ -311,11 +318,16 @@ def scenario(req: ScenarioRequest):
             ship_meta_for_pp = SHIP_META[req.ship]
             speed_used, speed_exact = row["speed_used"], row["speed_exact"]
     except FileNotFoundError as e:
-        raise HTTPException(503, f"live 物理重算依赖 ERA5 数据，当前不可用：{e}")
+        raise HTTPException(
+            503, f"live 物理重算依赖 ERA5 数据，当前不可用：{e}"
+            if req.locale == "zh" else
+            f"Live physics rerun requires ERA5 data, unavailable: {e}")
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, "场景计算失败") from e
+        raise HTTPException(
+            500, "场景计算失败" if req.locale == "zh"
+            else "Scenario computation failed") from e
 
     cell = da.postprocess(
         row, ship=req.ship, sail=req.sail, sea_operating_ratio=req.sea_ratio,
@@ -417,7 +429,10 @@ def recommendation(req: ScenarioRequest):
         })
 
     if not candidates:
-        raise HTTPException(422, "当前船型没有兼容的帆型候选")
+        raise HTTPException(
+            422, "当前船型没有兼容的帆型候选"
+            if req.locale == "zh" else
+            "No compatible sail candidates for this ship type")
 
     viable = [
         candidate for candidate in candidates
@@ -653,7 +668,10 @@ def pareto(req: ScenarioRequest):
             candidates.append(cand)
 
     if not candidates:
-        raise HTTPException(422, "当前船型没有兼容的帆型候选")
+        raise HTTPException(
+            422, "当前船型没有兼容的帆型候选"
+            if req.locale == "zh" else
+            "No compatible sail candidates for this ship type")
 
     # P10 目标仅在全部候选可用时启用，避免混合口径的支配比较
     has_p10 = all("npv_20y_p10_usd" in c for c in candidates)
@@ -695,7 +713,7 @@ def pareto(req: ScenarioRequest):
 
 
 @app.get("/api/audit")
-def audit():
+def audit(locale: Literal["zh", "en"] = Query("zh")):
     """模型可信度审计：链路 / 覆盖 / 护栏 / 限制 / 复现性（纯汇总，零重算）。
 
     面向评审的"非黑箱"证据区：每级模型的文献来源与校核方式、
@@ -705,7 +723,8 @@ def audit():
     return _to_jsonable(build_audit_summary(
         META, DF, insights_meta=INSIGHTS_META,
         bench_ranges=SAIL_BENCH_RANGE,
-        screening_cap=da.get_screening_saving_cap()))
+        screening_cap=da.get_screening_saving_cap(),
+        locale=locale))
 
 
 # ═══════════════════════════════════════════════════════════

@@ -48,7 +48,8 @@ export function useRecommendation(req: ScenarioRequest | null, debounceMs = 150)
         .catch((reason: unknown) => {
           if ((reason as Error).name === 'AbortError') return
           setData(null)
-          setError((reason as Error).message || '推荐计算失败')
+          setError((reason as Error).message ||
+            (req.locale === 'zh' ? '推荐计算失败' : 'Recommendation failed'))
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoading(false)

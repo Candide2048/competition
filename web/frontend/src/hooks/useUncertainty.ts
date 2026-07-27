@@ -26,7 +26,8 @@ export function useUncertainty(req: ScenarioRequest | null, debounceMs = 250) {
         })
         .catch((e: unknown) => {
           if ((e as Error).name === 'AbortError') return
-          setError((e as Error).message || '计算失败')
+          setError((e as Error).message ||
+            (req.locale === 'zh' ? '计算失败' : 'Computation failed'))
         })
         .finally(() => {
           if (!ac.signal.aborted) setLoading(false)

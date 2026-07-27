@@ -73,3 +73,40 @@ class TestAuditApi:
         # 实船区间三帆型齐全
         assert set(d["guardrails"]["benchmark_ranges"]) == {
             "flettner", "rigid_wing", "suction_wing"}
+class TestAuditLocale:
+    """locale 双语：默认中文、英文零汉字、双语结构一致、非法值拒绝"""
+
+    _META = {"ships": [], "routes": {}, "seasons": {},
+             "sail_types": [], "speeds_kn": []}
+
+    def test_unit_default_locale_is_zh(self):
+        out = build_audit_summary(self._META, df=[])
+        assert out["model_chain"] is MODEL_CHAIN
+        assert out["limitations"] is LIMITATIONS
+
+    def test_unit_invalid_locale_raises(self):
+        with pytest.raises(ValueError):
+            build_audit_summary(self._META, df=[], locale="fr")
+
+    def test_api_en_has_no_cjk(self, client):
+        import re
+        r = client.get("/api/audit?locale=en")
+        assert r.status_code == 200
+        assert not re.search(r"[\u4e00-\u9fff]", r.text)
+
+    def test_api_zh_en_structurally_consistent(self, client):
+        zh = client.get("/api/audit?locale=zh").json()
+        en = client.get("/api/audit?locale=en").json()
+        # 数值/结构字段与语言无关
+        assert zh["coverage"] == en["coverage"]
+        assert (zh["guardrails"]["screening_cap_pct"]
+                == en["guardrails"]["screening_cap_pct"])
+        assert (zh["guardrails"]["benchmark_ranges"]
+                == en["guardrails"]["benchmark_ranges"])
+        assert (zh["reproducibility"]["ci_tests"]
+                == en["reproducibility"]["ci_tests"])
+        assert len(zh["model_chain"]) == len(en["model_chain"])
+        assert len(zh["limitations"]) == len(en["limitations"])
+
+    def test_api_invalid_locale_422(self, client):
+        assert client.get("/api/audit?locale=fr").status_code == 422

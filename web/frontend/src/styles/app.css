@@ -691,9 +691,18 @@ input[type='range']::-moz-range-thumb {
   font-size: 12.5px;
   color: var(--muted);
 }
+.matrix-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .matrix-grid {
   display: grid;
   gap: 4px;
+  width: 100%;
 }
 .matrix-corner,
 .matrix-colhead,
@@ -710,10 +719,14 @@ input[type='range']::-moz-range-thumb {
 }
 .matrix-colhead {
   justify-content: center;
+  white-space: nowrap;
+  min-width: 0;
 }
 .matrix-rowhead {
   color: var(--text);
   font-weight: 600;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 .matrix-cell {
   display: flex;
@@ -724,10 +737,21 @@ input[type='range']::-moz-range-thumb {
   font-size: 13.5px;
   font-weight: 600;
   transition: transform 0.15s;
+  white-space: nowrap;
+  min-width: 0;
 }
 .matrix-cell:hover {
   transform: scale(1.04);
   box-shadow: var(--shadow);
+}
+@media (max-width: 640px) {
+  .matrix {
+    padding: 18px 14px;
+  }
+  .matrix-cell {
+    padding: 12px 6px;
+    font-size: 12.5px;
+  }
 }
 
 /* ══════════════ 分析报告 ══════════════ */

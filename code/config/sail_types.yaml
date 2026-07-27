@@ -94,7 +94,7 @@ flettner:
 
 rigid_wing:
   description: "刚性翼帆 (硬质翼帆, 基于升力的翼型)"
-  manufacturer_ref: "Oceanbird Wing560 / bound4blue / 中国 DSIC"
+  manufacturer_ref: "Oceanbird Wing560 / BAR Technologies WindWings / 中国 DSIC"
   geometry:
     H: 37.5           # 帆高 (m, Pyxis Ocean / Berge Olympus)
     chord: 20.0       # 弦长 (m, Berge Olympus 翼帆宽)
@@ -143,7 +143,7 @@ rigid_wing:
 
 suction_wing:
   description: "吸力帆 (边界层抽吸延迟分离, 高升力)"
-  manufacturer_ref: "bound4blue eSAIL / Ecowind"
+  manufacturer_ref: "bound4blue eSAIL / Econowind VentoFoil"
   geometry:
     H: 22.0           # 帆高 (m, bound4blue Model 2-22)
     chord: 3.0        # 弦长 (m, 估算)
@@ -170,7 +170,7 @@ suction_wing:
     ref_Ville_de_Bordeaux: "3× 22m, 日均节油 1.7t, 峰值 5.4t, 年省 560t 燃油"
     ref_MV_Ankie: "2× 13m 可收放吸力帆, 估计 4.5% 节油"
     ref_Maersk_Tankers: "5 艘油轮共 20× 24m eSAIL"
-    ref_Frisian_Sea: "2× 3×10m, 实测仅 2-4% (Ecowind)"
+    ref_Frisian_Sea: "2× 3×10m, 实测仅 2-4% (Econowind)"
   cost:
     unit_cost_usd: 800000         # 单帆估计 ~$0.8M (含安装)，船东可覆盖
     unit_cost_range_usd: [600000, 1200000]  # 文献/公开信息区间
@@ -202,15 +202,16 @@ comparison_summary:
 # ═══════════════════════════════════════════════════════════
 # 船型帆型兼容性矩阵
 # ═══════════════════════════════════════════════════════════
-# 值说明: 1.0 = 完全兼容(有实船证据), 0.0 = 不兼容(物理不可行)
-# 中间值表示有条件兼容(需額外投资或降级配置)
+# 值说明: 启发式筛选因子(用于候选排序, 非船级审批或实船校准的性能折减)
+#   1.0 = 有公开实船安装先例, 0.0 = 物理不可行,
+#   中间值表示有条件兼容(需额外投资或降级配置)
 # 数据来源:
 #   - 集装箱船+翼帆: 截至2026年无实船安装，集装箱堆叠区域阻碇大型翼帆安装
 #     (Advanced Wing Systems 2025.12 开发集装箱化方案，未达商用)
 #   - PCTC+翼帆: 高上层建筑+空气吃水限制，37.5m翼帆产生过大横倾力矩
 #     及桥梁净空问题 (DNV Air Draft Guidelines)
 #   - Flettner全船型兼容: 24m高度较低，可安装于各类船舶
-#     (Viking Grace客渡轮, Maersk Pelican油轮, Copenhagen散货船 等)
+#     (Viking Grace LNG燃料客渡轮, Maersk Pelican油轮, Copenhagen散货船 等)
 #   - 吸力帆全船型兼容: 22m高可收放，各船型适用
 #     (Ville de Bordeaux ro-ro, MV Ankie多用途船 等)
 ship_sail_compatibility:

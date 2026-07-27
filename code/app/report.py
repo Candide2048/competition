@@ -351,7 +351,7 @@ def _report_zh(ship_label, sail_label, sail_spec, route_name, season_label,
 
 {build_sensitivity_table(annual_fuel_saved_t, annual_co2_t, initial_cost, fuel_price, co2_price, locale='zh')}
 
-> 基准：燃料 {fuel_type}，油价 {fuel_price:.2f} USD/kg，碳价 {co2_price:.0f} EUR/tCO₂，
+> 基准：燃料 {fuel_type}，油价 {fuel_price:.2f} USD/kg，影子碳价 {co2_price:.0f} EUR/tCO₂，
 > 海上作业比例 {sea_operating_ratio:.3f}（年 {trips:.1f} 航次）。
 
 ## 五、方法与口径说明
@@ -419,7 +419,7 @@ Fuel price, carbon price, and sail efficiency are the main uncertainty drivers:
 
 {build_sensitivity_table(annual_fuel_saved_t, annual_co2_t, initial_cost, fuel_price, co2_price, locale='en')}
 
-> Baseline: {fuel_type}, fuel {fuel_price:.2f} USD/kg, carbon {co2_price:.0f} EUR/tCO₂,
+> Baseline: {fuel_type}, fuel {fuel_price:.2f} USD/kg, shadow carbon price {co2_price:.0f} EUR/tCO₂,
 > sea operating ratio {sea_operating_ratio:.3f} ({trips:.1f} voyages/yr).
 
 ## 5. Methodology

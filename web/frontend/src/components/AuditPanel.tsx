@@ -3,17 +3,10 @@ import { useI18n } from '../i18n'
 import { useAudit } from '../hooks/useAudit'
 import { fmtInt } from '../lib/format'
 
-// 帆型中文名（与后端 benchmark_ranges key 对应）
-const SAIL_NAMES: Record<string, string> = {
-  flettner: 'Flettner 转子帆',
-  rigid_wing: '刚性翼帆',
-  suction_wing: '吸力翼帆',
-}
-
 /** 审计正文：仅在用户首次展开后挂载，才发起 /api/audit 请求 */
 function AuditContent() {
-  const { t } = useI18n()
-  const { data, error } = useAudit()
+  const { t, locale } = useI18n()
+  const { data, error } = useAudit(locale)
 
   if (error) return <div className="note">{t.audit_err(error)}</div>
   if (!data) return <p className="hint">{t.audit_loading}</p>
@@ -73,13 +66,13 @@ function AuditContent() {
       <ul className="audit-list">
         {g.screening_cap_pct != null && (
           <li>
-            {t.audit_cap}：{g.screening_cap_pct}%
+            {t.audit_cap}: {g.screening_cap_pct}%
           </li>
         )}
         <li>{g.compatibility_derating}</li>
         {Object.entries(g.benchmark_ranges).map(([sail, b]) => (
           <li key={sail}>
-            {SAIL_NAMES[sail] ?? sail} · {t.bench_range} {b.lo}–{b.hi}%（{b.refs}）
+            {t.labels[sail] ?? sail} · {t.bench_range} {b.lo}–{b.hi}% ({b.refs})
           </li>
         ))}
       </ul>

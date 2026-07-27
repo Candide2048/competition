@@ -408,8 +408,8 @@ export interface AuditResult {
   }
 }
 
-export function getAudit(): Promise<AuditResult> {
-  return jget<AuditResult>('/api/audit')
+export function getAudit(locale: string): Promise<AuditResult> {
+  return jget<AuditResult>(`/api/audit?locale=${locale}`)
 }
 
 export interface WindResourceSummary {
