@@ -16,6 +16,7 @@ import sys
 import json
 import functools
 
+import numpy as np
 import yaml
 import pandas as pd
 
@@ -353,4 +354,158 @@ def run_single_scenario(ship: str, speed_kn: float, route: str, season: str,
         "dwt": ship_obj.DWT,
         "ship_type_imo": ship_obj.ship_type_imo,
         "GT": ship_obj.GT,
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 情景洞察（scenario_insights.json）：不确定性 + 风资源查表
+# ═══════════════════════════════════════════════════════════
+
+DEFAULT_INSIGHTS_PATH = os.path.join(
+    CODE_DIR, "results", "precomputed", "scenario_insights.json"
+)
+
+
+def scenario_key(ship: str, speed_kn: float, route: str,
+                 season: str, sail: str) -> str:
+    """insights record 主键（与 pipelines.precompute_scenario_insights 对齐）"""
+    return f"{ship}|{float(speed_kn):.1f}|{route}|{season}|{sail}"
+
+
+def load_insights(path: str = DEFAULT_INSIGHTS_PATH) -> tuple[dict, dict]:
+    """读 scenario_insights.json → (metadata, key→record 索引)
+
+    产物缺失时返回 ({}, {})：所有 pick_insight 返回 None，
+    API 以 available=False 优雅降级（不影响主 KPI 链路）。
+    """
+    if not os.path.exists(path):
+        return {}, {}
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    index = {
+        scenario_key(r["ship"], r["speed_kn"], r["route"],
+                     r["season"], r["sail"]): r
+        for r in data["records"]
+    }
+    return data["metadata"], index
+
+
+def pick_insight(index: dict, ship: str, speed: float, route: str,
+                 season: str, sail: str,
+                 grid_speeds: list[float] | None = None) -> dict | None:
+    """按主键取 insight record；航速取网格最近邻（与 pick_physics 同口径）"""
+    if not index:
+        return None
+    rec = index.get(scenario_key(ship, speed, route, season, sail))
+    if rec is not None:
+        return rec
+    if grid_speeds:
+        nearest = min(grid_speeds, key=lambda g: abs(float(g) - float(speed)))
+        return index.get(scenario_key(ship, nearest, route, season, sail))
+    return None
+
+
+def postprocess_uncertainty(insight: dict, ship: str, sail: str,
+                            sea_operating_ratio: float = 0.742,
+                            unit_cost_usd: float | None = None,
+                            flettner_spec: str = "24x4",
+                            fuel_type: str = "VLSFO",
+                            fuel_price_usd_per_kg: float = 0.6,
+                            co2_price_eur_per_t: float = 74.0,
+                            bench_lo: float | None = None,
+                            bench_hi: float | None = None) -> dict:
+    """不确定性分位数网格 + 经济性标量 → P10/P50/P90 与风险概率
+
+    口径与 postprocess 完全一致：先兼容性 derating，再 30% guardrail
+    （逐分位点应用），经济性用与主 KPI 相同的 annual_savings/npv/payback。
+    NPV 随 fuel_saved 单调，分位数经单调变换仍是分位数。
+    """
+    from analytics.economics import annual_savings, npv, payback_period
+    from analytics.uncertainty import prob_exceed_threshold
+
+    unc = insight["uncertainty"]
+    grid = unc["quantile_grid"]
+    q = np.asarray(grid["q"], dtype=float)
+    fs_kg = np.asarray(grid["fuel_saved_kg"], dtype=float)
+    sr = np.asarray(grid["saving_rate_pct"], dtype=float)
+    duration_h = float(insight["duration_h"])
+
+    # 兼容性 derating + guardrail（逐分位点，与 postprocess 同口径）
+    compat = get_compatibility(ship, sail)
+    fs_kg = fs_kg * compat
+    sr = sr * compat
+    cap = get_screening_saving_cap()
+    over = sr > cap
+    if over.any():
+        scale = np.ones_like(sr)
+        scale[over] = cap / sr[over]
+        fs_kg = fs_kg * scale
+        sr = np.minimum(sr, cap)
+    # 数值保护：保持分位数组单调不减
+    fs_kg = np.maximum.accumulate(fs_kg)
+    sr = np.maximum.accumulate(sr)
+
+    # 经济性后处理（与 evaluate_cell 同源公式，逐分位点）
+    if unit_cost_usd is None:
+        unit_cost_usd = resolve_unit_cost(sail, flettner_spec)
+    cost = round(float(unit_cost_usd) * SAIL_INSTALL[sail], 0)
+    emission_factor = resolve_emission_factor(fuel_type)
+    trips = (sea_operating_ratio * HOURS_PER_YEAR / duration_h
+             if duration_h > 0 else 0.0)
+
+    fuel_saved_t = fs_kg / 1000.0
+    co2_t = fuel_saved_t * emission_factor
+    annual_usd = np.array([
+        round(annual_savings(
+            float(ft) * trips, float(ct) * trips,
+            fuel_price=fuel_price_usd_per_kg,
+            co2_price=co2_price_eur_per_t,
+            work_rate=1.0)["total_savings_usd"], 0)
+        for ft, ct in zip(fuel_saved_t, co2_t)
+    ])
+    npv20 = np.array([npv(float(a), cost, years=[20])[20] for a in annual_usd])
+    pb = np.array([payback_period(cost, float(a)) for a in annual_usd])
+
+    def _idx(p: float) -> int:
+        return int(np.argmin(np.abs(q - p)))
+
+    def _q3(arr, nd=2) -> dict:
+        return {k: round(float(arr[_idx(p)]), nd)
+                for k, p in (("p10", 0.10), ("p50", 0.50), ("p90", 0.90))}
+
+    def _pb(i: int):
+        v = float(pb[i])
+        return round(v, 1) if np.isfinite(v) else None
+
+    risk = {
+        "prob_positive_fuel_saving": float(
+            unc["risk"]["prob_positive_fuel_saving"]),
+        "prob_positive_npv_20y": prob_exceed_threshold(
+            list(q), [float(v) for v in npv20], 0.0),
+    }
+    if bench_lo is not None and bench_hi is not None:
+        p_above_lo = prob_exceed_threshold(list(q), [float(v) for v in sr],
+                                           float(bench_lo))
+        p_above_hi = prob_exceed_threshold(list(q), [float(v) for v in sr],
+                                           float(bench_hi))
+        risk["prob_within_benchmark"] = round(
+            max(p_above_lo - p_above_hi, 0.0), 4)
+
+    return {
+        "method": unc["method"],
+        "n_samples": int(unc["n_samples"]),
+        "block_h": int(unc["block_h"]),
+        "seed": int(unc["seed"]),
+        "n_hours": int(unc["n_hours"]),
+        "saving_rate_pct": _q3(sr, 2),
+        "fuel_saved_t": _q3(fuel_saved_t, 2),
+        "co2_reduced_t": _q3(co2_t, 2),
+        "annual_savings_usd": _q3(annual_usd, 0),
+        "npv_20y_usd": _q3(npv20, 0),
+        "payback_years": {
+            "p10_case": _pb(_idx(0.10)),
+            "p50_case": _pb(_idx(0.50)),
+            "p90_case": _pb(_idx(0.90)),
+        },
+        "risk": risk,
     }

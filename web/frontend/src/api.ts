@@ -269,3 +269,193 @@ export function getMatrix(params: {
   })
   return jget<MatrixResult>(`/api/matrix?${q.toString()}`)
 }
+
+export interface QuantileBand {
+  p10: number
+  p50: number
+  p90: number
+}
+
+export interface UncertaintyResult {
+  available: boolean
+  reason?: string
+  speed_used?: number
+  basis?: { weather_years: number[]; note: string }
+  method?: string
+  n_samples?: number
+  block_h?: number
+  seed?: number
+  n_hours?: number
+  saving_rate_pct?: QuantileBand
+  fuel_saved_t?: QuantileBand
+  co2_reduced_t?: QuantileBand
+  annual_savings_usd?: QuantileBand
+  npv_20y_usd?: QuantileBand
+  payback_years?: {
+    p10_case: number | null
+    p50_case: number | null
+    p90_case: number | null
+  }
+  risk?: {
+    prob_positive_fuel_saving: number
+    prob_positive_npv_20y: number
+    prob_within_benchmark?: number
+  }
+}
+
+export async function postUncertainty(
+  req: ScenarioRequest,
+  signal?: AbortSignal,
+): Promise<UncertaintyResult> {
+  const r = await fetch('/api/uncertainty', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+    signal,
+  })
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}))
+    throw new Error((detail as { detail?: string }).detail ?? `HTTP ${r.status}`)
+  }
+  return r.json() as Promise<UncertaintyResult>
+}
+
+export interface ParetoCandidate {
+  id: string
+  sail: string
+  label: string
+  speed_kn: number
+  saving_rate_pct: number
+  npv_20y_usd: number
+  npv_20y_p10_usd?: number
+  annual_co2_reduced_t: number
+  cii_improvement_pct: number
+  payback_years: number | null
+  initial_cost_usd: number
+  annual_savings_usd: number
+  pareto_rank: number
+  is_front: boolean
+  dominates: string[]
+  dominated_by: string[]
+}
+
+export interface ParetoResult {
+  scope: {
+    ship: string
+    route: string
+    route_name: string
+    season: string
+    speeds: number[]
+  }
+  objectives: { field: string; direction: 'max' | 'min' }[]
+  robust_npv_available: boolean
+  fronts: string[][]
+  candidates: ParetoCandidate[]
+}
+
+export async function postPareto(
+  req: ScenarioRequest,
+  signal?: AbortSignal,
+): Promise<ParetoResult> {
+  const r = await fetch('/api/pareto', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+    signal,
+  })
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}))
+    throw new Error((detail as { detail?: string }).detail ?? `HTTP ${r.status}`)
+  }
+  return r.json() as Promise<ParetoResult>
+}
+
+export interface AuditModelStage {
+  name: string
+  source: string
+  role: string
+  validation: string
+}
+
+export interface AuditResult {
+  model_chain: AuditModelStage[]
+  coverage: {
+    records: number
+    ships: string[]
+    routes: string[]
+    seasons: string[]
+    sails: string[]
+    speeds_kn: number[]
+    weather_years: number[]
+    generated_at: string
+    insight_records: number
+  }
+  guardrails: {
+    screening_cap_pct: number | null
+    compatibility_derating: string
+    benchmark_ranges: Record<string, { lo: number; hi: number; refs: string }>
+  }
+  limitations: string[]
+  reproducibility: {
+    physics_grid: string
+    insights_grid: string
+    bootstrap_method: string
+    bootstrap_samples: number | null
+    bootstrap_seed: number | null
+    dockerized: boolean
+    ci_tests: number
+    single_source_kpi: string
+  }
+}
+
+export function getAudit(): Promise<AuditResult> {
+  return jget<AuditResult>('/api/audit')
+}
+
+export interface WindResourceSummary {
+  mean_true_wind_ms: number
+  mean_apparent_wind_ms: number
+  effective_hours_pct: number
+  positive_thrust_hours_pct: number
+  low_wind_hours_pct: number
+  headwind_hours_pct: number
+  beam_reach_hours_pct: number
+  tailwind_hours_pct: number
+  wind_speed_hist: { bins: number[]; pct: number[] }
+  relative_angle_hist: { bins_deg: number[]; pct: number[] }
+}
+
+export interface WindResourceResult {
+  available: boolean
+  reason?: string
+  ship?: string
+  route?: string
+  route_name?: string
+  season?: string
+  sail?: string
+  sail_label?: string
+  speed_used?: number
+  summary?: WindResourceSummary
+  interpretation?: {
+    fit_level: 'good' | 'medium' | 'poor'
+    main_reason_key: string
+  }
+  basis?: { weather_years: number[] }
+}
+
+export async function postWindResource(
+  req: ScenarioRequest,
+  signal?: AbortSignal,
+): Promise<WindResourceResult> {
+  const r = await fetch('/api/wind-resource', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+    signal,
+  })
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}))
+    throw new Error((detail as { detail?: string }).detail ?? `HTTP ${r.status}`)
+  }
+  return r.json() as Promise<WindResourceResult>
+}

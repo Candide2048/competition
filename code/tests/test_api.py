@@ -275,7 +275,7 @@ def test_cashflow_year_20_matches_backend_npv(client):
     assert body["quality"]["cii_year"] == 2026
     assert body["quality"]["weather_years"] == [2025]
     assert body["quality"]["departure_samples_per_season"] == 1
-    assert body["quality"]["uncertainty_interval_available"] is False
+    assert body["quality"]["uncertainty_interval_available"] is True
 
 
 def test_recommendation_compares_exact_compatible_scenarios(client):

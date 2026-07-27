@@ -1305,3 +1305,429 @@ input[type='range']::-moz-range-thumb {
   font-size: 0.68rem;
   color: var(--text-dim);
 }
+
+/* ── 不确定性区间（P10/P50/P90）──────────────────────── */
+.unc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 26px;
+}
+.unc-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.unc-metric {
+  color: var(--muted);
+  font-size: 13px;
+}
+.unc-band {
+  position: relative;
+  height: 40px;
+}
+.unc-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(100, 200, 255, 0.08);
+}
+.unc-range {
+  position: absolute;
+  top: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.55), rgba(0, 255, 136, 0.65));
+}
+.unc-median {
+  position: absolute;
+  top: 16px;
+  width: 2px;
+  height: 18px;
+  background: #00ff88;
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+}
+.unc-val {
+  position: absolute;
+  top: 0;
+  font-size: 11px;
+  font-family: var(--font-num);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.unc-val.mid {
+  color: #00ff88;
+  font-weight: 600;
+}
+.unc-risk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.unc-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(100, 200, 255, 0.15);
+  font-size: 12px;
+  color: var(--muted);
+}
+.unc-chip b {
+  font-family: var(--font-num);
+  font-size: 14px;
+}
+.unc-basis {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.85;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .unc-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+/* ── Pareto 决策前沿 ──────────────────────────────────── */
+.pareto-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 26px;
+}
+.pareto-svg {
+  width: 100%;
+  height: auto;
+}
+.pareto-axis {
+  stroke: rgba(100, 200, 255, 0.25);
+  stroke-width: 1;
+}
+.pareto-zero {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+.pareto-axis-label {
+  fill: var(--muted);
+  font-size: 11px;
+  text-anchor: middle;
+}
+.pareto-front-line {
+  fill: none;
+  stroke: rgba(0, 255, 136, 0.35);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.pareto-pt {
+  fill: rgba(150, 160, 180, 0.45);
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 1;
+}
+.pareto-pt.front {
+  fill: rgba(0, 255, 136, 0.75);
+  stroke: rgba(0, 255, 136, 0.9);
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.45));
+}
+.pareto-pt-ring {
+  fill: none;
+  stroke: #64c8ff;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.pareto-pt-label {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-num);
+  text-anchor: middle;
+}
+.pareto-table-wrap {
+  overflow-x: auto;
+}
+.pareto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pareto-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.15);
+  white-space: nowrap;
+}
+.pareto-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.07);
+  font-family: var(--font-num);
+  white-space: nowrap;
+}
+.pareto-table td.pareto-name {
+  font-family: inherit;
+}
+.pareto-table tr.front td {
+  color: inherit;
+}
+.pareto-table tr.dom td {
+  color: var(--muted);
+  opacity: 0.75;
+}
+.pareto-table tr.selected td {
+  background: rgba(100, 200, 255, 0.06);
+}
+.pareto-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: inherit;
+  border: 1px solid rgba(150, 160, 180, 0.3);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pareto-badge.front {
+  border-color: rgba(0, 255, 136, 0.5);
+  color: #00ff88;
+}
+.pareto-badge.sel {
+  margin-left: 8px;
+  border-color: rgba(100, 200, 255, 0.5);
+  color: #64c8ff;
+}
+.pareto-note {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.85;
+  line-height: 1.6;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .pareto-card {
+    padding: 18px 14px;
+  }
+}
+
+/* ── 模型审计 ── */
+.audit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 26px;
+}
+.audit-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.audit-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(100, 200, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(100, 200, 255, 0.04);
+}
+.audit-stat b {
+  font-family: var(--font-num);
+  font-size: 18px;
+  font-weight: 600;
+}
+.audit-stat span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.audit-h {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.audit-chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.audit-chain li {
+  padding: 10px 14px;
+  border-left: 2px solid rgba(0, 255, 136, 0.35);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 10px 10px 0;
+}
+.audit-chain-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.audit-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  color: #00ff88;
+  font-size: 11px;
+  font-family: var(--font-num);
+}
+.audit-src {
+  font-size: 12px;
+  color: var(--muted);
+}
+.audit-role {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.audit-val {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #00ff88;
+  opacity: 0.85;
+  line-height: 1.6;
+}
+.audit-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.audit-limits li {
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .audit-card {
+    padding: 18px 14px;
+  }
+}
+
+/* ── 风资源适配 ── */
+.wind-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 26px;
+}
+.wind-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.wind-fit {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(150, 160, 180, 0.3);
+}
+.wind-fit.good {
+  border-color: rgba(0, 255, 136, 0.5);
+  color: #00ff88;
+}
+.wind-fit.medium {
+  border-color: rgba(255, 200, 80, 0.5);
+  color: #ffc850;
+}
+.wind-fit.poor {
+  border-color: rgba(255, 110, 110, 0.5);
+  color: #ff6e6e;
+}
+.wind-reason {
+  font-size: 13px;
+  color: var(--muted);
+}
+.wind-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+.wind-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(100, 200, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(100, 200, 255, 0.04);
+}
+.wind-stat b {
+  font-family: var(--font-num);
+  font-size: 17px;
+  font-weight: 600;
+}
+.wind-stat span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.wind-hists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.wind-hist-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.wind-bar-row {
+  display: grid;
+  grid-template-columns: 86px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.wind-bin {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-num);
+  white-space: nowrap;
+  text-align: right;
+}
+.wind-bar-track {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.wind-bar {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(100, 200, 255, 0.55), rgba(0, 255, 136, 0.55));
+}
+.wind-pct {
+  font-size: 11px;
+  font-family: var(--font-num);
+  color: var(--muted);
+}
+.wind-note {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.85;
+  line-height: 1.6;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .wind-card {
+    padding: 18px 14px;
+  }
+}

@@ -51,6 +51,8 @@ from app.report import (  # noqa: E402
     SAIL_LABELS, SHIP_LABELS, SEASON_LABELS,
 )
 from analytics.cii import DEFAULT_CII_YEAR  # noqa: E402
+from analytics.pareto import assign_pareto_rank  # noqa: E402
+from app.audit import build_audit_summary  # noqa: E402
 from analytics.economics import discounted_cashflow_series  # noqa: E402
 
 SPEED_TOL = 1e-6
@@ -70,6 +72,7 @@ SAIL_BENCH_RANGE = {
 # ═══════════════════════════════════════════════════════════
 
 META, DF = da.load_grid()
+INSIGHTS_META, INSIGHTS_INDEX = da.load_insights()
 GRID_SPEEDS = [float(s) for s in META["speeds_kn"]]
 SAIL_INSTALL = META["sail_install"]
 ROUTES_META = META["routes"]
@@ -366,7 +369,10 @@ def scenario(req: ScenarioRequest):
             "scenario_basis": "representative_voyage",
             "weather_years": [2025],
             "departure_samples_per_season": 1,
-            "uncertainty_interval_available": False,
+            "uncertainty_interval_available": (
+                not is_live and da.pick_insight(
+                    INSIGHTS_INDEX, req.ship, float(req.speed), req.route,
+                    req.season, req.sail, GRID_SPEEDS) is not None),
             "cii_year": req.cii_year,
         },
         "report_md": report_md,
@@ -516,6 +522,190 @@ def matrix(ship: str, route: str, season: str,
         "annual_savings_usd": annual,
         "payback_years": payback,
     }
+
+
+@app.post("/api/uncertainty")
+def uncertainty(req: ScenarioRequest):
+    """不确定性区间：预计算 bootstrap 分位数网格 + 在线经济后处理。
+
+    物理不确定性离线预计算（24h circular block bootstrap），经济性按
+    当前油价/碳价对分位数网格做单调变换（NPV 随 fuel_saved 单调，
+    分位数经单调变换仍是分位数），与主 KPI 完全同口径。
+    产物缺失或场景未覆盖时返回 available=False，前端优雅降级。
+    """
+    _validate_scenario(req)
+    insight = da.pick_insight(INSIGHTS_INDEX, req.ship, float(req.speed),
+                              req.route, req.season, req.sail, GRID_SPEEDS)
+    if insight is None:
+        return {"available": False, "reason": "no_precomputed_insight"}
+
+    lo, hi, _refs = SAIL_BENCH_RANGE.get(req.sail, (None, None, ""))
+    try:
+        band = da.postprocess_uncertainty(
+            insight, ship=req.ship, sail=req.sail,
+            sea_operating_ratio=req.sea_ratio, unit_cost_usd=req.unit_cost,
+            flettner_spec=req.flettner_spec, fuel_type=req.fuel_type,
+            fuel_price_usd_per_kg=req.fuel_price,
+            co2_price_eur_per_t=req.co2_price,
+            bench_lo=lo, bench_hi=hi)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, "不确定性后处理失败") from e
+
+    return {
+        "available": True,
+        "speed_used": float(insight["speed_kn"]),
+        "basis": {
+            "weather_years": INSIGHTS_META.get("weather_years", [2025]),
+            "note": INSIGHTS_META.get("note", ""),
+        },
+        **_to_jsonable(band),
+    }
+
+
+@app.post("/api/wind-resource")
+def wind_resource(req: ScenarioRequest):
+    """风资源适配解释：该航线/季节的风到底适不适合这款帆。
+
+    逐小时真风/视风/相对风角/推力统计在预计算阶段完成
+    （simulate_voyage collect_hourly → summarize_wind_resource），
+    线上纯查表返回直方图与判级，不加载任何 NetCDF。
+    产物未覆盖时返回 available=False，前端优雅降级。
+    """
+    _validate_scenario(req)
+    insight = da.pick_insight(INSIGHTS_INDEX, req.ship, float(req.speed),
+                              req.route, req.season, req.sail, GRID_SPEEDS)
+    if insight is None or "wind_resource" not in insight:
+        return {"available": False, "reason": "no_precomputed_insight"}
+
+    wr = insight["wind_resource"]
+    summary = {k: v for k, v in wr.items() if k != "interpretation"}
+    return _to_jsonable({
+        "available": True,
+        "ship": req.ship,
+        "route": req.route,
+        "route_name": ROUTES_META[req.route]["name"],
+        "season": req.season,
+        "sail": req.sail,
+        "sail_label": SAIL_LABELS.get(req.sail, req.sail),
+        "speed_used": float(insight["speed_kn"]),
+        "summary": summary,
+        "interpretation": wr.get("interpretation", {}),
+        "basis": {
+            "weather_years": INSIGHTS_META.get("weather_years", [2025]),
+        },
+    })
+
+
+@app.post("/api/pareto")
+def pareto(req: ScenarioRequest):
+    """Pareto 决策前沿：当前 船型/航线/季节 下，帆型 × 网格航速 全候选。
+
+    六目标非支配排序（NSGA-II 风格）：20 年 NPV、P10 稳健 NPV、
+    年 CO₂ 减排、CII 改善率 越大越好；回收期、初始投资越小越好。
+    纯网格路径不触 ERA5；每个帆型用其默认单台成本（与 matrix 口径一致）。
+    P10 稳健 NPV 来自预计算不确定性产物，产物未覆盖时自动降级为五目标。
+    """
+    _validate_scenario(req)
+
+    candidates = []
+    for sail in SAIL_TYPES:
+        if da.get_compatibility(req.ship, sail) <= 0:
+            continue
+        unit_cost = da.resolve_unit_cost(sail)
+        lo, hi, _refs = SAIL_BENCH_RANGE.get(sail, (None, None, ""))
+        for sp in GRID_SPEEDS:
+            row = da.pick_physics(DF, req.ship, float(sp),
+                                  req.route, req.season, sail)
+            cell = da.postprocess(
+                row, ship=req.ship, sail=sail,
+                sea_operating_ratio=req.sea_ratio, unit_cost_usd=unit_cost,
+                fuel_type=req.fuel_type, fuel_price_usd_per_kg=req.fuel_price,
+                co2_price_eur_per_t=req.co2_price,
+                ship_meta=SHIP_META[req.ship], cii_year=req.cii_year)
+            duration_h = float(row["duration_h"])
+            trips = (req.sea_ratio * HOURS_PER_YEAR / duration_h
+                     if duration_h > 0 else 0.0)
+            cand = {
+                "id": f"{sail}@{float(sp):.1f}",
+                "sail": sail,
+                "label": SAIL_LABELS.get(sail, sail),
+                "speed_kn": float(sp),
+                "saving_rate_pct": float(cell["saving_rate_pct"]),
+                "npv_20y_usd": float(cell["npv_20y_usd"]),
+                "annual_co2_reduced_t": round(
+                    float(cell["co2_reduced_t"]) * trips, 1),
+                "cii_improvement_pct": float(cell["cii_improvement_pct"]),
+                "payback_years": cell["payback_years"],
+                "initial_cost_usd": float(cell["initial_cost_usd"]),
+                "annual_savings_usd": float(cell["annual_savings_usd"]),
+            }
+            insight = da.pick_insight(INSIGHTS_INDEX, req.ship, float(sp),
+                                      req.route, req.season, sail, GRID_SPEEDS)
+            if insight is not None:
+                band = da.postprocess_uncertainty(
+                    insight, ship=req.ship, sail=sail,
+                    sea_operating_ratio=req.sea_ratio, unit_cost_usd=unit_cost,
+                    fuel_type=req.fuel_type,
+                    fuel_price_usd_per_kg=req.fuel_price,
+                    co2_price_eur_per_t=req.co2_price,
+                    bench_lo=lo, bench_hi=hi)
+                cand["npv_20y_p10_usd"] = float(band["npv_20y_usd"]["p10"])
+            candidates.append(cand)
+
+    if not candidates:
+        raise HTTPException(422, "当前船型没有兼容的帆型候选")
+
+    # P10 目标仅在全部候选可用时启用，避免混合口径的支配比较
+    has_p10 = all("npv_20y_p10_usd" in c for c in candidates)
+    objectives = [("npv_20y_usd", "max")]
+    if has_p10:
+        objectives.append(("npv_20y_p10_usd", "max"))
+    objectives += [
+        ("annual_co2_reduced_t", "max"),
+        ("cii_improvement_pct", "max"),
+        ("payback_years_or_inf", "min"),
+        ("initial_cost_usd", "min"),
+    ]
+
+    for c in candidates:
+        pb = c["payback_years"]
+        c["payback_years_or_inf"] = float(pb) if pb is not None else float("inf")
+
+    ranked = assign_pareto_rank(candidates, objectives)
+    for c in ranked:
+        del c["payback_years_or_inf"]  # inf 不可 JSON 序列化，仅用于排序
+
+    n_fronts = max(c["pareto_rank"] for c in ranked) + 1
+    fronts = [[c["id"] for c in ranked if c["pareto_rank"] == r]
+              for r in range(n_fronts)]
+
+    return {
+        "scope": {
+            "ship": req.ship,
+            "route": req.route,
+            "route_name": ROUTES_META[req.route]["name"],
+            "season": req.season,
+            "speeds": GRID_SPEEDS,
+        },
+        "objectives": [{"field": f, "direction": d} for f, d in objectives],
+        "robust_npv_available": has_p10,
+        "fronts": fronts,
+        "candidates": _to_jsonable(ranked),
+    }
+
+
+@app.get("/api/audit")
+def audit():
+    """模型可信度审计：链路 / 覆盖 / 护栏 / 限制 / 复现性（纯汇总，零重算）。
+
+    面向评审的"非黑箱"证据区：每级模型的文献来源与校核方式、
+    预计算覆盖范围、guardrail 与实船对照区间、诚实的已知限制。
+    进程内容不变，直接汇总启动时已加载的 metadata，无任何外部请求。
+    """
+    return _to_jsonable(build_audit_summary(
+        META, DF, insights_meta=INSIGHTS_META,
+        bench_ranges=SAIL_BENCH_RANGE,
+        screening_cap=da.get_screening_saving_cap()))
 
 
 # ═══════════════════════════════════════════════════════════

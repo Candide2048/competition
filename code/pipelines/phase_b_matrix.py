@@ -153,17 +153,35 @@ def sample_route_weather(era5, waypoints):
 
 
 def simulate_voyage(sail, n_sails, waypoints, weather, R_total, V_ship_ms,
-                    sfoc_kg_per_kwh: float = 0.180):
+                    sfoc_kg_per_kwh: float = 0.180,
+                    collect_hourly: bool = False):
     """单航次逐小时推力平衡积分（帆型无关，统一 SailBase 接口）
 
     Returns:
         dict: fuel_baseline_kg, fuel_with_sail_kg, fuel_saved_kg,
-              saving_rate_pct, mean_thrust_kN, mean_power_kW, mean_wind_ms
+              saving_rate_pct, mean_thrust_kN, mean_power_kW, mean_wind_ms；
+              collect_hourly=True 时额外含 "hourly"（逐小时 np.ndarray，
+              供 analytics.uncertainty / analytics.wind_resource 离线统计，
+              不进入 physics_grid.json）
     """
     u10, v10, msl, sst = weather
     fuel_baseline_kg = 0.0
     fuel_saved_kg = 0.0
     T_list, P_list = [], []
+    hourly = {k: [] for k in (
+        "fuel_baseline_kg_h", "fuel_saved_kg_h", "thrust_kN", "power_kW",
+        "true_wind_ms", "apparent_wind_ms", "relative_wind_angle_deg",
+        "effective")} if collect_hourly else None
+
+    def _record_hour(fb_h, fs_h, T_total, P_total, u, v, V_app, beta, eff):
+        hourly["fuel_baseline_kg_h"].append(fb_h)
+        hourly["fuel_saved_kg_h"].append(fs_h)
+        hourly["thrust_kN"].append(T_total / 1000.0)
+        hourly["power_kW"].append(P_total / 1000.0)
+        hourly["true_wind_ms"].append(float(np.hypot(u, v)))
+        hourly["apparent_wind_ms"].append(float(V_app))
+        hourly["relative_wind_angle_deg"].append(float(np.degrees(beta)))
+        hourly["effective"].append(eff)
 
     for i in range(len(waypoints)):
         u, v = float(u10[i]), float(v10[i])
@@ -182,6 +200,9 @@ def simulate_voyage(sail, n_sails, waypoints, weather, R_total, V_ship_ms,
             fuel_baseline_kg += bal.fuel_baseline_kg_per_h
             T_list.append(0.0)
             P_list.append(0.0)
+            if collect_hourly:
+                _record_hour(bal.fuel_baseline_kg_per_h, 0.0, 0.0, 0.0,
+                             u, v, V_app, beta, False)
             continue
 
         opt = sail.optimal_control(V_app, rho, beta)
@@ -193,12 +214,15 @@ def simulate_voyage(sail, n_sails, waypoints, weather, R_total, V_ship_ms,
         bal = solve_balance(R_total, V_ship_ms, T_total, P_total, SFOC=sfoc_kg_per_kwh)
         fuel_baseline_kg += bal.fuel_baseline_kg_per_h
         fuel_saved_kg += bal.fuel_saved_kg_per_h
+        if collect_hourly:
+            _record_hour(bal.fuel_baseline_kg_per_h, bal.fuel_saved_kg_per_h,
+                         T_total, P_total, u, v, V_app, beta, True)
 
     fuel_with_sail_kg = fuel_baseline_kg - fuel_saved_kg
     saving_rate = (fuel_saved_kg / fuel_baseline_kg * 100.0
                    if fuel_baseline_kg > 0 else 0.0)
     wind = np.sqrt(u10 ** 2 + v10 ** 2)
-    return {
+    result = {
         "fuel_baseline_kg": fuel_baseline_kg,
         "fuel_with_sail_kg": fuel_with_sail_kg,
         "fuel_saved_kg": fuel_saved_kg,
@@ -207,6 +231,9 @@ def simulate_voyage(sail, n_sails, waypoints, weather, R_total, V_ship_ms,
         "mean_power_kW": float(np.mean(P_list)) / 1000.0,
         "mean_wind_ms": float(np.mean(wind)),
     }
+    if collect_hourly:
+        result["hourly"] = {k: np.asarray(v) for k, v in hourly.items()}
+    return result
 
 
 def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,

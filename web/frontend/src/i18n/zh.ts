@@ -110,6 +110,70 @@ export interface I18nKeys {
   retry: string
   speed_note: (sp: string, used: string) => string
   guardrail_note: (raw: string, cap: string) => string
+  sec_unc: string
+  sec_unc_title: string
+  unc_loading: string
+  unc_unavailable: string
+  unc_err: (msg: string) => string
+  unc_metric_saving: string
+  unc_metric_annual: string
+  unc_metric_npv: string
+  unc_payback_label: string
+  unc_payback_cases: (p10: string, p50: string, p90: string) => string
+  unc_risk_fuel: string
+  unc_risk_npv: string
+  unc_risk_bench: string
+  unc_basis: (years: string, n: number, block: number) => string
+  sec_pareto: string
+  sec_pareto_title: string
+  pareto_loading: string
+  pareto_err: (msg: string) => string
+  pareto_front: string
+  pareto_rank: string
+  pareto_npv: string
+  pareto_robust_npv: string
+  pareto_co2: string
+  pareto_payback: string
+  pareto_cost: string
+  pareto_selected: string
+  pareto_dominated: (n: number) => string
+  pareto_note: string
+  sec_audit: string
+  sec_audit_title: string
+  audit_loading: string
+  audit_err: (msg: string) => string
+  audit_records: string
+  audit_weather_years: string
+  audit_scope: string
+  audit_insights: string
+  audit_tests: string
+  audit_seed: string
+  audit_model_chain: string
+  audit_guardrails: string
+  audit_cap: string
+  audit_limitations: string
+  audit_repro: string
+  audit_docker: string
+  sec_wind: string
+  sec_wind_title: string
+  wind_loading: string
+  wind_err: (msg: string) => string
+  wind_unavailable: string
+  wind_fit_good: string
+  wind_fit_medium: string
+  wind_fit_poor: string
+  wind_reason_low_wind: string
+  wind_reason_beam: string
+  wind_reason_head: string
+  wind_reason_tail: string
+  wind_mean_true: string
+  wind_mean_apparent: string
+  wind_effective_hours: string
+  wind_positive_thrust: string
+  wind_low_wind: string
+  wind_speed_dist: string
+  wind_angle_dist: string
+  wind_basis: (years: string) => string
   labels: Record<string, string>
   // Benchmark
   bench_range: string
@@ -269,6 +333,77 @@ const zh: I18nKeys = {
     'summer': '夏季',
     'autumn': '秋季',
   },
+  // Uncertainty band
+  sec_unc: '风险区间',
+  sec_unc_title: '节油与收益的 P10 / P50 / P90 置信区间',
+  unc_loading: '正在计算不确定性区间…',
+  unc_unavailable: '当前场景暂无预计算不确定性区间（live 重算或产物未覆盖），主 KPI 不受影响。',
+  unc_err: (msg: string) => `不确定性区间加载失败：${msg}`,
+  unc_metric_saving: '节油率',
+  unc_metric_annual: '年净节省',
+  unc_metric_npv: '20 年净现值',
+  unc_payback_label: '回收期三情形',
+  unc_payback_cases: (p10: string, p50: string, p90: string) =>
+    `保守 ${p10} · 中位 ${p50} · 乐观 ${p90}`,
+  unc_risk_fuel: '节油为正概率',
+  unc_risk_npv: '20 年 NPV 为正概率',
+  unc_risk_bench: '落于实船区间概率',
+  unc_basis: (years: string, n: number, block: number) =>
+    `方法：ERA5 ${years} 逐小时风场 · ${block}h 环块自助法 ${n} 次重采样 · 经济性随油价/碳价滑杆实时联动，与主 KPI 同口径`,
+  // Pareto 决策前沿
+  sec_pareto: '决策前沿',
+  sec_pareto_title: '帆型 × 航速多目标 Pareto 前沿',
+  pareto_loading: '正在计算 Pareto 前沿…',
+  pareto_err: (msg: string) => `Pareto 前沿加载失败：${msg}`,
+  pareto_front: 'Pareto 前沿',
+  pareto_rank: '层级',
+  pareto_npv: '20 年 NPV',
+  pareto_robust_npv: 'P10 稳健 NPV',
+  pareto_co2: '年 CO₂ 减排',
+  pareto_payback: '回收期',
+  pareto_cost: '初始投资',
+  pareto_selected: '当前方案',
+  pareto_dominated: (n: number) => `被 ${n} 个候选支配`,
+  pareto_note: '六目标非支配排序（NSGA-II 风格）：20 年 NPV、P10 稳健 NPV、年 CO₂ 减排、CII 改善率越大越好；回收期、初始投资越小越好。绿色前沿候选互不支配——任何目标的改进都要以牺牲其他目标为代价；灰色候选存在全面更优的替代。随油价/碳价/在航率滑杆实时更新。',
+  // 模型审计
+  sec_audit: '模型审计',
+  sec_audit_title: '打开黑箱：模型链路、护栏与已知限制',
+  audit_loading: '正在加载审计信息…',
+  audit_err: (msg: string) => `审计信息加载失败：${msg}`,
+  audit_records: '物理网格记录',
+  audit_weather_years: 'ERA5 天气年份',
+  audit_scope: '船型 × 航线 × 季节',
+  audit_insights: '不确定性情景',
+  audit_tests: '自动化测试',
+  audit_seed: 'bootstrap 随机种子',
+  audit_model_chain: '模型链路：数据源 → KPI 逐级可溯源',
+  audit_guardrails: '护栏与实船对照',
+  audit_cap: '节油率筛查上限',
+  audit_limitations: '已知限制（诚实呈现）',
+  audit_repro: '可复现性',
+  audit_docker: 'Docker 容器化部署，云端与本地环境一致',
+  // 风资源适配
+  sec_wind: '风资源',
+  sec_wind_title: '这条航线的风，适合这款帆吗？',
+  wind_loading: '正在读取风资源统计…',
+  wind_err: (msg: string) => `风资源统计加载失败：${msg}`,
+  wind_unavailable: '当前场景暂无预计算风资源统计（live 重算或产物未覆盖），主 KPI 不受影响。',
+  wind_fit_good: '适配良好',
+  wind_fit_medium: '中等适配',
+  wind_fit_poor: '适配欠佳',
+  wind_reason_low_wind: '低风时段占比高，帆推力受限',
+  wind_reason_beam: '横风占主导，正处升力型帆的高效区间',
+  wind_reason_head: '顶风占比高，可用推力窗口收窄',
+  wind_reason_tail: '顺风占主导，推力窗口充足',
+  wind_mean_true: '平均真风速',
+  wind_mean_apparent: '平均视风速',
+  wind_effective_hours: '有效风时占比',
+  wind_positive_thrust: '正推力小时占比',
+  wind_low_wind: '低风（<3 m/s）占比',
+  wind_speed_dist: '真风速分布',
+  wind_angle_dist: '相对风角分布（0°=顶风 · 180°=顺风）',
+  wind_basis: (years: string) =>
+    `统计基础：ERA5 ${years} 逐小时风场 · 与节油物理同一次航次模拟采样，口径一致`,
   // Benchmark
   bench_range: '实船报道区间',
   // Matrix
