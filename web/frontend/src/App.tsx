@@ -11,6 +11,7 @@ import Background from './components/Background'
 import Sidebar from './components/Sidebar'
 import Hero from './components/Hero'
 import KpiGrid from './components/KpiGrid'
+import VoyageSavings from './components/VoyageSavings'
 import CashflowChart from './components/CashflowChart'
 import UncertaintyBand from './components/UncertaintyBand'
 import ParetoFront from './components/ParetoFront'
@@ -215,6 +216,7 @@ export default function App() {
                   )}
                 </div>
               )}
+              <VoyageSavings res={data} />
               <KpiGrid res={data} />
             </Reveal>
 
@@ -328,6 +330,7 @@ export default function App() {
                 seaRatio={req.sea_ratio}
                 fuelType={req.fuel_type}
                 ciiYear={req.cii_year}
+                sfoc={req.sfoc}
               />
             </Reveal>
 

@@ -48,6 +48,11 @@ export interface I18nKeys {
   kpi_annual_foot: (trips: string) => string
   kpi_saving: string
   kpi_saving_foot: (t: string) => string
+  vs_eyebrow: string
+  vs_fuel: string
+  vs_money: string
+  vs_rate: string
+  vs_note: (trips: string, annual: string) => string
   kpi_profit: string
   kpi_profit_earning: (yr: string) => string
   kpi_profit_expect: (yr: string) => string
@@ -256,6 +261,11 @@ const zh: I18nKeys = {
   kpi_annual_foot: (trips: string) => `${trips} 航次/年 · 含影子碳价收益`,
   kpi_saving: '节油率',
   kpi_saving_foot: (t: string) => `单航次节油 ${t} t`,
+  vs_eyebrow: '单航次直观收益',
+  vs_fuel: '本航次节油',
+  vs_money: '单航次净节省（燃油+碳）',
+  vs_rate: '节油率',
+  vs_note: (trips: string, annual: string) => `按 ${trips} 航次/年 换算 → 年净节省 ${annual}`,
   kpi_profit: '20年净现值',
   kpi_profit_earning: (yr: string) => `第 ${yr} 年开始盈利`,
   kpi_profit_expect: (yr: string) => `预计第 ${yr} 年回本`,
@@ -309,7 +319,7 @@ const zh: I18nKeys = {
   sb_unit_cost: '单台成本 (USD)',
   sb_sea_ratio: '海上作业比例',
   sb_sfoc: 'SFOC (g/kWh)',
-  sb_sfoc_note: 'SFOC ≠ 180 或非网格航速将触发 live 实时物理重算。',
+  sb_sfoc_note: 'SFOC 线性缩放油耗与省钱，实时生效（不触发重算）。',
   sb_draft: '吃水 (m)',
   sb_show_params: '调整方案参数',
   sb_hide_params: '收起方案参数',

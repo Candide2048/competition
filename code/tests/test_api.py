@@ -75,7 +75,13 @@ def test_options_complete(client):
                                 "sea_ratio", "unit_cost", "sfoc"}
     assert o["defaults"]["ship"] in api.SHIP_META
     assert o["defaults"]["cii_year"] == 2026
-    assert set(o["capabilities"]) == {"live_physics", "grid_flettner_spec"}
+    assert set(o["capabilities"]) == {
+        "live_physics", "grid_flettner_spec",
+        "live_physics_backend", "live_physics_scope"}
+    assert o["capabilities"]["live_physics_backend"] in (
+        "full", "corridor", "none")
+    assert o["capabilities"]["live_physics_scope"] in (
+        "full_domain", "configured_routes", "grid_only")
     assert set(o["compatibility"]) == set(
         s for s in api.VALID_SHIP_TYPES if s in api.SHIP_META)
 

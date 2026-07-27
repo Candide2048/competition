@@ -26,7 +26,6 @@ import sys
 import json
 import math
 import functools
-import glob
 import threading
 from typing import Literal, Optional
 
@@ -45,6 +44,8 @@ from core.owner_inputs import (  # noqa: E402
     HOURS_PER_YEAR,
 )
 from core.realtime_prices import get_market_prices  # noqa: E402
+from core.era5_loader import resolve_era5_backend  # noqa: E402
+from core.corridor_era5 import CorridorCoverageError  # noqa: E402
 import app.data_access as da  # noqa: E402
 from app.report import (  # noqa: E402
     generate_report, generate_recommendation_report,
@@ -80,8 +81,22 @@ SEASONS_META = META["seasons"]
 SHIP_META = META["ship_meta"]
 SAIL_TYPES = list(META["sail_types"])
 GRID_FLETTNER_SPEC = str(META.get("flettner_spec", "24x4"))
-LIVE_DATA_AVAILABLE = bool(glob.glob(os.path.join(PROJECT_ROOT, "data", "*.nc")))
+ERA5_BACKEND = resolve_era5_backend()
+LIVE_DATA_AVAILABLE = ERA5_BACKEND != "none"
 _LIVE_SEMAPHORE = threading.BoundedSemaphore(value=1)
+_LIVE_ERA5 = None
+_LIVE_ERA5_LOCK = threading.Lock()
+
+
+def _get_live_era5():
+    """进程级 live 数据源单例（corridor 常驻内存；full 复用文件句柄）"""
+    global _LIVE_ERA5
+    if _LIVE_ERA5 is None:
+        with _LIVE_ERA5_LOCK:
+            if _LIVE_ERA5 is None:
+                from core.era5_loader import load_era5_from_config
+                _LIVE_ERA5 = load_era5_from_config(backend=ERA5_BACKEND)
+    return _LIVE_ERA5
 
 
 @functools.lru_cache(maxsize=256)
@@ -95,7 +110,7 @@ def _cached_run_single(ship, speed_kn, route, season, sail,
     return da.run_single_scenario(
         ship=ship, speed_kn=speed_kn, route=route, season=season, sail=sail,
         flettner_spec=flettner_spec, sfoc_g_per_kwh=sfoc_g_per_kwh,
-        ship_overrides=overrides,
+        ship_overrides=overrides, era5=_get_live_era5(),
     )
 
 
@@ -250,6 +265,11 @@ def options():
         "capabilities": {
             "live_physics": LIVE_DATA_AVAILABLE,
             "grid_flettner_spec": GRID_FLETTNER_SPEC,
+            "live_physics_backend": ERA5_BACKEND if LIVE_DATA_AVAILABLE else "none",
+            "live_physics_scope": (
+                "full_domain" if LIVE_DATA_AVAILABLE and ERA5_BACKEND == "full"
+                else "configured_routes" if LIVE_DATA_AVAILABLE
+                else "grid_only"),
         },
         "compatibility": {
             ship: {sail: da.get_compatibility(ship, sail) for sail in SAIL_TYPES}
@@ -283,8 +303,8 @@ def scenario(req: ScenarioRequest):
     speed_in_grid = any(abs(req.speed - g) < SPEED_TOL for g in GRID_SPEEDS)
     spec_requires_live = (req.sail == "flettner"
                           and req.flettner_spec != GRID_FLETTNER_SPEC)
-    is_live = (bool(overrides) or (not speed_in_grid) or spec_requires_live
-               or abs(req.sfoc - STD_SFOC) > SPEED_TOL)
+    # SFOC 为纯乘性算术（da.scale_physics_sfoc），不再触发 live 重算
+    is_live = bool(overrides) or (not speed_in_grid) or spec_requires_live
 
     if is_live and not LIVE_DATA_AVAILABLE:
         raise HTTPException(
@@ -300,7 +320,8 @@ def scenario(req: ScenarioRequest):
                     429, "已有 live 物理计算正在运行，请稍后重试"
                     if req.locale == "zh" else
                     "A live physics run is already in progress; "
-                    "please retry shortly")
+                    "please retry shortly",
+                    headers={"Retry-After": "3"})
             try:
                 row = _cached_run_single(
                     req.ship, float(req.speed), req.route, req.season, req.sail,
@@ -315,8 +336,15 @@ def scenario(req: ScenarioRequest):
         else:
             row = da.pick_physics(DF, req.ship, float(req.speed),
                                   req.route, req.season, req.sail)
+            row = da.scale_physics_sfoc(row, float(req.sfoc))
             ship_meta_for_pp = SHIP_META[req.ship]
             speed_used, speed_exact = row["speed_used"], row["speed_exact"]
+    except CorridorCoverageError:
+        raise HTTPException(
+            503, "该输入超出预抽取走廊数据覆盖范围，无法 live 重算"
+            if req.locale == "zh" else
+            "Input is outside the pre-extracted corridor coverage; "
+            "live physics rerun unavailable")
     except FileNotFoundError as e:
         raise HTTPException(
             503, f"live 物理重算依赖 ERA5 数据，当前不可用：{e}"
@@ -351,6 +379,7 @@ def scenario(req: ScenarioRequest):
         n_sails=SAIL_INSTALL[req.sail],
         flettner_spec=req.flettner_spec if req.sail == "flettner" else None,
         is_live=is_live, ship_overrides=overrides,
+        sfoc_g_per_kwh=float(req.sfoc),
         locale=req.locale)
 
     lo, hi, refs = SAIL_BENCH_RANGE.get(req.sail, (0.0, 10.0, ""))
@@ -489,6 +518,7 @@ def matrix(ship: str, route: str, season: str,
            co2_price: float = Query(74.0, ge=0, le=1000.0),
            sea_ratio: float = Query(0.742, gt=0, le=1.0),
            fuel_type: str = "VLSFO",
+           sfoc: float = Query(180.0, ge=100.0, le=400.0),
            cii_year: int = Query(DEFAULT_CII_YEAR, ge=2023, le=2026)):
     """效益矩阵：固定 船型/航线/季节，遍历 帆型 × 网格航速（纯网格路径，快）。
 
@@ -512,6 +542,7 @@ def matrix(ship: str, route: str, season: str,
         unit_cost = da.resolve_unit_cost(sail)
         for sp in GRID_SPEEDS:
             row = da.pick_physics(DF, ship, float(sp), route, season, sail)
+            row = da.scale_physics_sfoc(row, float(sfoc))
             cell = da.postprocess(
                 row, ship=ship, sail=sail, sea_operating_ratio=sea_ratio,
                 unit_cost_usd=unit_cost, fuel_type=fuel_type,
@@ -562,6 +593,7 @@ def uncertainty(req: ScenarioRequest):
             flettner_spec=req.flettner_spec, fuel_type=req.fuel_type,
             fuel_price_usd_per_kg=req.fuel_price,
             co2_price_eur_per_t=req.co2_price,
+            sfoc_g_per_kwh=float(req.sfoc),
             bench_lo=lo, bench_hi=hi)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, "不确定性后处理失败") from e
@@ -631,6 +663,7 @@ def pareto(req: ScenarioRequest):
         for sp in GRID_SPEEDS:
             row = da.pick_physics(DF, req.ship, float(sp),
                                   req.route, req.season, sail)
+            row = da.scale_physics_sfoc(row, float(req.sfoc))
             cell = da.postprocess(
                 row, ship=req.ship, sail=sail,
                 sea_operating_ratio=req.sea_ratio, unit_cost_usd=unit_cost,
@@ -663,6 +696,7 @@ def pareto(req: ScenarioRequest):
                     fuel_type=req.fuel_type,
                     fuel_price_usd_per_kg=req.fuel_price,
                     co2_price_eur_per_t=req.co2_price,
+                    sfoc_g_per_kwh=float(req.sfoc),
                     bench_lo=lo, bench_hi=hi)
                 cand["npv_20y_p10_usd"] = float(band["npv_20y_usd"]["p10"])
             candidates.append(cand)

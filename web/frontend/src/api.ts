@@ -64,6 +64,8 @@ export interface Options {
   capabilities: {
     live_physics: boolean
     grid_flettner_spec: string
+    live_physics_backend: string
+    live_physics_scope: 'full_domain' | 'configured_routes' | 'grid_only'
   }
   compatibility: Record<string, Record<string, number>>
 }
@@ -82,6 +84,7 @@ export interface Cell {
   cii_improvement_pct: number
   initial_cost_usd: number
   annual_savings_usd: number
+  voyage_savings_usd: number
   payback_years: number | null
   npv_10y_usd: number
   npv_20y_usd: number
@@ -256,6 +259,7 @@ export function getMatrix(params: {
   sea_ratio: number
   fuel_type: string
   cii_year: number
+  sfoc: number
 }): Promise<MatrixResult> {
   const q = new URLSearchParams({
     ship: params.ship,
@@ -266,6 +270,7 @@ export function getMatrix(params: {
     sea_ratio: String(params.sea_ratio),
     fuel_type: params.fuel_type,
     cii_year: String(params.cii_year),
+    sfoc: String(params.sfoc),
   })
   return jget<MatrixResult>(`/api/matrix?${q.toString()}`)
 }

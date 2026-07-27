@@ -1786,3 +1786,49 @@ details.audit-card > summary.audit-summary:focus-visible {
 details.audit-card[open] > summary.audit-summary {
   margin-bottom: 18px;
 }
+
+/* ===== 单航次省钱横幅（VoyageSavings） ===== */
+.voyage-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+}
+.vb-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.vb-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.vb-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vb-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.voyage-banner.pos .vb-value {
+  color: var(--pos);
+}
+.voyage-banner.neg .vb-value {
+  color: var(--neg);
+}
+.vb-sep {
+  font-size: 20px;
+  color: var(--muted);
+}
+.vb-label,
+.vb-note {
+  font-size: 12px;
+  color: var(--muted);
+}

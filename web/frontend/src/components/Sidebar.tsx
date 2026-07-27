@@ -241,15 +241,6 @@ export default function Sidebar({
                   />
                 </label>
               </div>
-              <Slider
-                label={t.sb_sfoc}
-                value={req.sfoc}
-                min={r.sfoc.min}
-                max={r.sfoc.max ?? 220}
-                step={r.sfoc.step}
-                onChange={(v) => patch({ sfoc: v })}
-              />
-              <p className="adv-note">{t.sb_sfoc_note}</p>
             </div>
             )}
           </div>
@@ -382,6 +373,15 @@ export default function Sidebar({
             decimals={3}
             onChange={(v) => patch({ sea_ratio: v })}
           />
+          <Slider
+            label={t.sb_sfoc}
+            value={req.sfoc}
+            min={r.sfoc.min}
+            max={r.sfoc.max ?? 220}
+            step={r.sfoc.step}
+            onChange={(v) => patch({ sfoc: v })}
+          />
+          <p className="hint">{t.sb_sfoc_note}</p>
         </div>
         <button className="mobile-view-results" type="button" onClick={showResults}>
           {t.sb_view_results}

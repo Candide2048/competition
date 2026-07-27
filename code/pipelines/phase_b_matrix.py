@@ -273,9 +273,12 @@ def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,
     if co2_price is not None:
         sav_kwargs["co2_price"] = co2_price
     sav = annual_savings(annual_fuel_saved_t, annual_co2_t, **sav_kwargs)
+    # 单航次口径净节省（annual_savings 对吨数线性，年化 = 单航次 × trips 自洽）
+    sav_voyage = annual_savings(fuel_saved_t, co2_reduced_t, **sav_kwargs)
     # Economic KPIs and the API cashflow must share the same displayed inputs.
     cost_usd = round(cost, 0)
     annual_savings_usd = round(sav["total_savings_usd"], 0)
+    voyage_savings_usd = round(sav_voyage["total_savings_usd"], 0)
     pb = payback_period(cost_usd, annual_savings_usd)
     npv_d = npv(annual_savings_usd, cost_usd, years=[10, 20])
 
@@ -293,6 +296,7 @@ def evaluate_cell(sim, ship, total_nm, unit_cost, n_sails, trips_per_year,
         "cii_improvement_pct": round(imp, 2),
         "initial_cost_usd": cost_usd,
         "annual_savings_usd": annual_savings_usd,
+        "voyage_savings_usd": voyage_savings_usd,
         "payback_years": round(pb, 1) if np.isfinite(pb) else None,
         "npv_10y_usd": round(npv_d[10], 0),
         "npv_20y_usd": round(npv_d[20], 0),

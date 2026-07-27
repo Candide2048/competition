@@ -278,6 +278,7 @@ def generate_report(*, ship: str, sail: str, route: str, route_name: str,
                     flettner_spec: str | None = None,
                     is_live: bool = False,
                     ship_overrides: dict | None = None,
+                    sfoc_g_per_kwh: float = 180.0,
                     locale: str = "zh") -> str:
     """生成 Markdown 分析报告（支持 zh/en）"""
     en = (locale == "en")
@@ -320,20 +321,23 @@ def generate_report(*, ship: str, sail: str, route: str, route_name: str,
                         distance_nm, duration_h, speed_used, speed_note, n_sails,
                         cell, physics, trips, annual_fuel_saved_t, annual_co2_t,
                         initial_cost, unit_cost_usd, fuel_type, fuel_price, co2_price,
-                        sea_operating_ratio, now, live_note, ov_line, _ship_note, sail)
+                        sea_operating_ratio, now, live_note, ov_line, _ship_note, sail,
+                        sfoc_g_per_kwh)
     else:
         md = _report_zh(ship_label, sail_label, sail_spec, route_name, season_label,
                         distance_nm, duration_h, speed_used, speed_note, n_sails,
                         cell, physics, trips, annual_fuel_saved_t, annual_co2_t,
                         initial_cost, unit_cost_usd, fuel_type, fuel_price, co2_price,
-                        sea_operating_ratio, now, live_note, ov_line, _ship_note, sail)
+                        sea_operating_ratio, now, live_note, ov_line, _ship_note, sail,
+                        sfoc_g_per_kwh)
     return md
 
 def _report_zh(ship_label, sail_label, sail_spec, route_name, season_label,
               distance_nm, duration_h, speed_used, speed_note, n_sails,
               cell, physics, trips, annual_fuel_saved_t, annual_co2_t,
               initial_cost, unit_cost_usd, fuel_type, fuel_price, co2_price,
-              sea_operating_ratio, now, live_note, ov_line, _ship_note, sail):
+              sea_operating_ratio, now, live_note, ov_line, _ship_note, sail,
+              sfoc_g_per_kwh: float = 180.0):
     return f"""# 风帆辅助推进效益分析报告
 
 > 生成时间：{now}　|　场景：{ship_label} · {sail_label}{sail_spec} · {route_name} · {season_label}
@@ -349,6 +353,7 @@ def _report_zh(ship_label, sail_label, sail_spec, route_name, season_label,
 - **单航次 CO₂ 减排**：{cell['co2_reduced_t']:.2f} t　→　**年减排**：{annual_co2_t:.0f} t
 - **CII 评级**：加装后 {cell['cii_rating_with_sail']} 级（碳强度改善 {cell['cii_improvement_pct']:.2f}%）
 - **初始投资**：{_fmt_usd(initial_cost)}（{n_sails} 台 × 单台 {_fmt_usd(unit_cost_usd)}）
+- **单航次净节省**：{_fmt_usd(cell.get('voyage_savings_usd', 0))}（燃油 + 碳成本，单航次口径）
 - **年净节省**：{_fmt_usd(cell['annual_savings_usd'])}　|　**投资回收期**：{_fmt_payback(cell['payback_years'], 'zh')}
 - **10 年 NPV**：{_fmt_usd(cell['npv_10y_usd'])}　|　**20 年 NPV**：{_fmt_usd(cell['npv_20y_usd'])}
 {ov_line}
@@ -372,7 +377,7 @@ def _report_zh(ship_label, sail_label, sail_spec, route_name, season_label,
 | 有帆油耗（单航次） | {physics['fuel_with_sail_kg']/1000.0:.2f} t |
 | CII 基线 → 加帆 | {cell['cii_baseline']:.4f} → {cell['cii_with_sail']:.4f} |
 
-> 说明：有帆油耗已扣除转子驱动 / 吸力风扇电力功耗；SFOC 固定为 180 g/kWh。
+> 说明：有帆油耗已扣除转子驱动 / 吸力风扇电力功耗；SFOC 取 {sfoc_g_per_kwh:.0f} g/kWh。
 
 ## 四、经济性敏感性分析（10 年 NPV）
 
@@ -401,7 +406,8 @@ def _report_en(ship_label, sail_label, sail_spec, route_name, season_label,
               distance_nm, duration_h, speed_used, speed_note, n_sails,
               cell, physics, trips, annual_fuel_saved_t, annual_co2_t,
               initial_cost, unit_cost_usd, fuel_type, fuel_price, co2_price,
-              sea_operating_ratio, now, live_note, ov_line, _ship_note, sail):
+              sea_operating_ratio, now, live_note, ov_line, _ship_note, sail,
+              sfoc_g_per_kwh: float = 180.0):
     return f"""# Wind-Assisted Ship Propulsion Benefit Analysis
 
 > Generated: {now} | Scenario: {ship_label} · {sail_label}{sail_spec} · {route_name} · {season_label}
@@ -417,6 +423,7 @@ hourly ERA5 wind integration yields:
 - **Per-voyage CO₂ reduced**: {cell['co2_reduced_t']:.2f} t → **Annual**: {annual_co2_t:.0f} t
 - **CII rating**: {cell['cii_rating_with_sail']} (carbon intensity improved {cell['cii_improvement_pct']:.2f}%)
 - **Initial investment**: {_fmt_usd(initial_cost)} ({n_sails} × {_fmt_usd(unit_cost_usd)} each)
+- **Per-voyage net savings**: {_fmt_usd(cell.get('voyage_savings_usd', 0))} (fuel + carbon, single voyage)
 - **Annual net savings**: {_fmt_usd(cell['annual_savings_usd'])} | **Payback**: {_fmt_payback(cell['payback_years'], 'en')}
 - **10-yr NPV**: {_fmt_usd(cell['npv_10y_usd'])} | **20-yr NPV**: {_fmt_usd(cell['npv_20y_usd'])}
 {ov_line}
@@ -440,7 +447,7 @@ Results fall within the reported range, confirming order-of-magnitude credibilit
 | With-sail fuel (per voyage) | {physics['fuel_with_sail_kg']/1000.0:.2f} t |
 | CII baseline → with sail | {cell['cii_baseline']:.4f} → {cell['cii_with_sail']:.4f} |
 
-> Note: With-sail fuel accounts for rotor/fan power consumption; SFOC fixed at 180 g/kWh.
+> Note: With-sail fuel accounts for rotor/fan power consumption; SFOC = {sfoc_g_per_kwh:.0f} g/kWh.
 
 ## 4. Sensitivity Analysis (10-yr NPV)
 

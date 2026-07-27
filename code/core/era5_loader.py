@@ -26,6 +26,13 @@ DEFAULT_CONFIG_PATH = os.path.join(
 DEFAULT_NC_WIND = r"D:\Pythonfiles\pythonProject\shipping_wasp\data\data_stream-oper_stepType-instant.nc"
 DEFAULT_NC_METEO = r"D:\Pythonfiles\pythonProject\shipping_wasp\data\data_stream-oper_stepType-instant (2).nc"
 
+# 走廊 NPZ（部署瘦身：无全域 .nc 时的 live 物理后备数据源）
+DEFAULT_CORRIDOR_NPZ = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "results", "precomputed", "era5_corridor_v1.npz"
+)
+VALID_ERA5_BACKENDS = ("full", "corridor", "none")
+
 
 def _validate_no_chinese(path: str) -> None:
     """校验路径不含中文字符（避免 Windows C 库 fopen bug）"""
@@ -178,17 +185,56 @@ class ERA5Dataset:
         self.close()
 
 
-def load_era5_from_config(config_path: str | None = None) -> ERA5Dataset:
-    """从 paths.yaml 读取路径并构造 ERA5Dataset
+def resolve_era5_backend(config_path: str | None = None) -> str:
+    """解析当前环境可用的 live 物理数据后端
+
+    优先级:
+        ① 环境变量 ERA5_BACKEND（full / corridor / none，显式指定即生效）
+        ② auto：全域 .nc 存在 → full；走廊 NPZ 存在 → corridor；否则 none
+
+    Returns:
+        str: "full" | "corridor" | "none"
+    """
+    env = os.environ.get("ERA5_BACKEND", "").strip().lower()
+    if env:
+        if env not in VALID_ERA5_BACKENDS:
+            raise ValueError(
+                f"ERA5_BACKEND 无效: {env!r}，可选 {VALID_ERA5_BACKENDS}")
+        return env
+
+    if config_path is None:
+        config_path = DEFAULT_CONFIG_PATH
+    era5_cfg = _load_paths_config(config_path)["era5"]
+    if os.path.exists(era5_cfg["nc_wind"]) and os.path.exists(era5_cfg["nc_meteo"]):
+        return "full"
+    if os.path.exists(DEFAULT_CORRIDOR_NPZ):
+        return "corridor"
+    return "none"
+
+
+def load_era5_from_config(config_path: str | None = None,
+                          backend: str | None = None):
+    """按后端构造 live 物理数据源（full → ERA5Dataset，corridor → CorridorERA5）
 
     Args:
         config_path: paths.yaml 路径，None 则用默认路径
+        backend: "full" / "corridor" / None（None 则 resolve_era5_backend 自动解析）
 
     Returns:
-        ERA5Dataset 实例
+        ERA5Dataset 或 CorridorERA5 实例（sample_route 契约一致）
     """
     if config_path is None:
         config_path = DEFAULT_CONFIG_PATH
+    if backend is None:
+        backend = resolve_era5_backend(config_path)
+
+    if backend == "corridor":
+        from core.corridor_era5 import CorridorERA5
+        return CorridorERA5()
+    if backend == "none":
+        raise RuntimeError(
+            "无可用 ERA5 数据后端: 既无全域 .nc 也无走廊 NPZ "
+            "(可设 ERA5_BACKEND 显式指定)")
 
     paths_cfg = _load_paths_config(config_path)
     era5_cfg = paths_cfg["era5"]

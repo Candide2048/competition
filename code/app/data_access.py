@@ -160,6 +160,26 @@ def resolve_emission_factor(fuel_type: str) -> float:
     return float(EMISSION_FACTORS[fuel_type])
 
 
+STD_SFOC_G_PER_KWH = 180.0
+
+
+def scale_physics_sfoc(row: dict, sfoc_g_per_kwh: float,
+                       reference: float = STD_SFOC_G_PER_KWH) -> dict:
+    """网格物理 cell 的 SFOC 线性缩放（燃油量 ∝ SFOC，解析精确）
+
+    simulate_voyage 中燃油 = 功率 × 时长 × SFOC，SFOC 为纯乘性因子；
+    节油率为燃油量之比，缩放后不变。仅缩放三个 fuel_*_kg 字段，
+    推力/功率/风速等物理量与 SFOC 无关，保持原值。
+    """
+    ratio = float(sfoc_g_per_kwh) / float(reference)
+    if abs(ratio - 1.0) < 1e-12:
+        return row
+    out = dict(row)
+    for k in ("fuel_baseline_kg", "fuel_with_sail_kg", "fuel_saved_kg"):
+        out[k] = float(row[k]) * ratio
+    return out
+
+
 def postprocess(row: dict, ship: str, sail: str,
                 sea_operating_ratio: float = 0.742,
                 unit_cost_usd: float | None = None,
@@ -413,7 +433,8 @@ def postprocess_uncertainty(insight: dict, ship: str, sail: str,
                             fuel_price_usd_per_kg: float = 0.6,
                             co2_price_eur_per_t: float = 74.0,
                             bench_lo: float | None = None,
-                            bench_hi: float | None = None) -> dict:
+                            bench_hi: float | None = None,
+                            sfoc_g_per_kwh: float = STD_SFOC_G_PER_KWH) -> dict:
     """不确定性分位数网格 + 经济性标量 → P10/P50/P90 与风险概率
 
     口径与 postprocess 完全一致：先兼容性 derating，再 30% guardrail
@@ -428,6 +449,8 @@ def postprocess_uncertainty(insight: dict, ship: str, sail: str,
     q = np.asarray(grid["q"], dtype=float)
     fs_kg = np.asarray(grid["fuel_saved_kg"], dtype=float)
     sr = np.asarray(grid["saving_rate_pct"], dtype=float)
+    # SFOC 线性缩放：燃油量 ∝ SFOC，节油率（燃油量之比）不变
+    fs_kg = fs_kg * (float(sfoc_g_per_kwh) / STD_SFOC_G_PER_KWH)
     duration_h = float(insight["duration_h"])
 
     # 兼容性 derating + guardrail（逐分位点，与 postprocess 同口径）
