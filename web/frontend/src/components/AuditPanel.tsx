@@ -39,10 +39,6 @@ function AuditContent() {
           <b>{fmtInt(rep.ci_tests)}</b>
           <span>{t.audit_tests}</span>
         </div>
-        <div className="audit-stat">
-          <b>{rep.bootstrap_seed ?? '—'}</b>
-          <span>{t.audit_seed}</span>
-        </div>
       </div>
 
       {/* 模型链路 */}
@@ -83,20 +79,6 @@ function AuditContent() {
         {data.limitations.map((s) => (
           <li key={s}>{s}</li>
         ))}
-      </ul>
-
-      {/* 可复现性 */}
-      <h3 className="audit-h">{t.audit_repro}</h3>
-      <ul className="audit-list">
-        <li>{rep.single_source_kpi}</li>
-        <li>
-          {rep.bootstrap_method} × {rep.bootstrap_samples ?? '—'} · seed{' '}
-          {rep.bootstrap_seed ?? '—'}
-        </li>
-        <li>
-          {rep.physics_grid} · {rep.insights_grid}
-        </li>
-        {rep.dockerized && <li>{t.audit_docker}</li>}
       </ul>
     </>
   )

@@ -153,13 +153,10 @@ export interface I18nKeys {
   audit_scope: string
   audit_insights: string
   audit_tests: string
-  audit_seed: string
   audit_model_chain: string
   audit_guardrails: string
   audit_cap: string
   audit_limitations: string
-  audit_repro: string
-  audit_docker: string
   sec_wind: string
   sec_wind_title: string
   wind_loading: string
@@ -383,20 +380,17 @@ const zh: I18nKeys = {
   sec_audit: '模型审计',
   sec_audit_title: '打开黑箱：模型链路、护栏与已知限制',
   audit_loading: '正在加载审计信息…',
-  audit_expand: '模型方法、护栏与复现信息（点击展开）',
+  audit_expand: '模型方法、护栏与已知限制（点击展开）',
   audit_err: (msg: string) => `审计信息加载失败：${msg}`,
   audit_records: '物理网格记录',
   audit_weather_years: 'ERA5 天气年份',
   audit_scope: '船型 × 航线 × 季节',
   audit_insights: '不确定性情景',
   audit_tests: '自动化测试',
-  audit_seed: 'bootstrap 随机种子',
   audit_model_chain: '模型链路：数据源 → KPI 逐级可溯源',
   audit_guardrails: '护栏与公开案例对照',
   audit_cap: '节油率筛查上限',
-  audit_limitations: '已知限制（诚实呈现）',
-  audit_repro: '可复现性',
-  audit_docker: 'Docker 容器化部署，云端与本地环境一致',
+  audit_limitations: '已知限制',
   // 风资源适配
   sec_wind: '风资源',
   sec_wind_title: '这条航线的风，适合这款帆吗？',
